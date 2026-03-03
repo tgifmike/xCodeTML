@@ -6,7 +6,7 @@
 //
 import Foundation
 
-struct LineCheckStationInput: Identifiable {
+struct LineCheckStationInput: Identifiable, Codable, Equatable {
     let id: UUID
     var stationName: String
     var items: [LineCheckItemInput]
