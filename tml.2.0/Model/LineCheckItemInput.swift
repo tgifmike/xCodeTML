@@ -1,6 +1,6 @@
 import Foundation
 
-struct LineCheckItemInput: Identifiable {
+struct LineCheckItemInput: Identifiable, Codable  {
     let id: UUID
 
     let item: LineCheckItemDto
