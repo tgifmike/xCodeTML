@@ -10,7 +10,7 @@ struct LineCheckDetailView: View {
     let locationId: String
 
     @State private var lineCheck: LineCheckDto?
-    @State private var items: [LineCheckItemInput] = []
+    @State private var stations: [LineCheckStationInput] = []
     @State private var isLoading = true
     @State private var error: String?
 
@@ -31,9 +31,12 @@ struct LineCheckDetailView: View {
                         VStack(spacing: 16) {
                             headerSection(lineCheck: lineCheck)
 
-                            ForEach($items) { $item in
-                                LineCheckItemRow(input: $item, focusedField: $focusedField)
-                                    .id(item.id)
+                            ForEach($stations) { $station in
+                                LineCheckStationSection(
+                                    stationName: station.stationName,
+                                    items: $station.items,
+                                    focusedField: $focusedField
+                                )
                             }
 
                             saveButton
@@ -138,6 +141,11 @@ struct LineCheckDetailView: View {
                     id: UUID().uuidString,
                     stationName: "Station 1",
                     items: dummyItems
+                ),
+                LineCheckStationDto(
+                    id: UUID().uuidString,
+                    stationName: "Station 2",
+                    items: dummyItems
                 )
             ]
 
@@ -150,9 +158,23 @@ struct LineCheckDetailView: View {
             lineCheck = dummyLineCheck
 
             // Map to editable items safely
-            items = dummyLineCheck.stations.flatMap { $0.items }.compactMap { dto in
-                guard let idString = dto.id, let uuid = UUID(uuidString: idString) else { return nil }
-                return LineCheckItemInput(id: uuid, item: dto)
+            stations = dummyLineCheck.stations.compactMap { stationDto in
+                
+                guard let stationUUID = UUID(uuidString: stationDto.id) else { return nil }
+                
+                let mappedItems: [LineCheckItemInput] = stationDto.items.compactMap { dto in
+                    guard let idString = dto.id,
+                          let uuid = UUID(uuidString: idString)
+                    else { return nil }
+                    
+                    return LineCheckItemInput(id: uuid, item: dto)
+                }
+                
+                return LineCheckStationInput(
+                    id: stationUUID,
+                    stationName: stationDto.stationName ?? "Unnamed Station",
+                    items: mappedItems
+                )
             }
 
         } catch {
