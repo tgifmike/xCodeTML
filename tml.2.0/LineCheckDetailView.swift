@@ -1,82 +1,7 @@
-//
-//
-//import SwiftUI
-//
-//struct LineCheckDetailView: View {
-//
-//    let lineCheckId: String
-//    let locationId: String
-//
-//    var body: some View {
-//        VStack(spacing: 20) {
-//
-//            Text("Line Check Detail")
-//                .font(.largeTitle)
-//                .fontWeight(.bold)
-//
-//            Text("Line Check ID:")
-//                .font(.headline)
-//
-//            Text(lineCheckId)
-//                .foregroundColor(.secondary)
-//
-//            Text("Location ID:")
-//                .font(.headline)
-//                .padding(.top)
-//
-//            Text(locationId)
-//                .foregroundColor(.secondary)
-//
-//            Spacer()
-//        }
-//        .padding()
-//        .navigationTitle("Line Check")
-//        .navigationBarTitleDisplayMode(.inline)
-//    }
-//}
-
 import SwiftUI
 import Foundation
 import SwiftUI
 
-// MARK: - Models
-
-//struct LineCheckDto: Identifiable {
-//    let id: String
-//    let username: String?
-//    let stations: [LineCheckStationDto]
-//}
-
-//struct LineCheckStationDto: Identifiable {
-//    let id: String
-//    let stationName: String?
-//    let items: [LineCheckItemDto]
-//}
-
-//struct LineCheckItemDto: Identifiable {
-//    let id: String
-//    let itemName: String?
-//    let shelfLife: String?
-//    let panSize: String?
-//    let toolName: String?
-//    let portionSize: String?
-//    let templateNotes: String?
-//    let tempTaken: Bool
-//}
-
-// Input model for editable state
-//struct LineCheckItemInput: Identifiable {
-//    let id: UUID
-//    let item: LineCheckItemDto
-//    var temperature: String = ""
-//    var observations: String = ""
-//}
-
-// Focus state enum
-//enum LineCheckField: Hashable {
-//    case temperature(UUID)
-//    case observation(UUID)
-//}
 
 // MARK: - LineCheckDetailView
 
@@ -176,7 +101,7 @@ struct LineCheckDetailView: View {
                     shelfLife: "3 days",
                     templateNotes: "Check carefully",
                     tempTaken: true,
-                    checkMark: true,
+                    checkMark: false,
                     panSize: "12x12",
                     tool: true,
                     toolName: "Spatula",
@@ -190,10 +115,10 @@ struct LineCheckDetailView: View {
                 ),
                 LineCheckItemDto(
                     id: UUID().uuidString,
-                    itemName: "Item A",
+                    itemName: "Item B",
                     shelfLife: "3 days",
                     templateNotes: "Check carefully",
-                    tempTaken: true,
+                    tempTaken: false,
                     checkMark: true,
                     panSize: "12x12",
                     tool: true,
@@ -236,39 +161,7 @@ struct LineCheckDetailView: View {
     }
 }
 
-// MARK: - Item Row
-//struct LineCheckItemRow: View {
-//    @Binding var input: LineCheckItemInput
-//    @FocusState.Binding var focusedField: LineCheckField?
-//
-//    var body: some View {
-//        VStack(alignment: .leading, spacing: 8) {
-//            Text(input.item.itemName ?? "-")
-//                .font(.headline)
-//
-//            if input.item.tempTaken {
-//                TextField(
-//                    "Temperature",
-//                    text: $input.temperature
-//                )
-//                .keyboardType(.decimalPad)
-//                .focused($focusedField, equals: .temperature(input.id))
-//                .textFieldStyle(.roundedBorder)
-//            }
-//
-//            TextEditor(text: $input.observations)
-//                .focused($focusedField, equals: .observation(input.id))
-//                .frame(minHeight: 60)
-//                .overlay(
-//                    RoundedRectangle(cornerRadius: 8)
-//                        .stroke(focusedField == .observation(input.id) ? Color.blue : Color.secondary.opacity(0.5))
-//                )
-//        }
-//        .padding()
-//        .background(.ultraThinMaterial)
-//        .clipShape(RoundedRectangle(cornerRadius: 12))
-//    }
-//}
+
 
 // MARK: - Preview
 struct LineCheckDetailView_Previews: PreviewProvider {
