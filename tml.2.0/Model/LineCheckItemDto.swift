@@ -1,6 +1,6 @@
 import Foundation
 
-struct LineCheckItemDto: Identifiable, Codable {
+struct LineCheckItemDto: Identifiable, Codable, Equatable {
 
     let id: String?
     let itemName: String?
@@ -13,10 +13,10 @@ struct LineCheckItemDto: Identifiable, Codable {
     let toolName: String?
     let portioned: Bool
     let portionSize: String?
-    let itemChecked: Bool
-    let temperature: Float?
+    var itemChecked: Bool
+    var temperature: Float?
     let minTemp: Float?
     let maxTemp: Float?
-    let observations: String?
+    var observations: String?
     let sortOrder: Int? = 0
 }

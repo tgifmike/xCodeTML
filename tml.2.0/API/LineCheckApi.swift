@@ -1,16 +1,5 @@
 import Foundation
 
-// MARK: - DTO
-
-//struct LineCheckDto: Codable, Identifiable {
-//    let id: String
-//
-//    // add other fields as needed later
-//    // let userId: String?
-//    // let username: String?
-//    // let stations: [LineCheckStationDto]
-//}
-
 // MARK: - API
 
 final class LineCheckApi {
