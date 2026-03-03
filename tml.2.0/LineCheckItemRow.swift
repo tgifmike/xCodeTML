@@ -73,6 +73,7 @@ struct LineCheckItemRow: View {
                 .font(.headline)
 
             // Metadata Grid
+            // MARK: - Metadata Grid
             VStack(alignment: .leading, spacing: 8) {
 
                 metadataRow(
@@ -102,18 +103,37 @@ struct LineCheckItemRow: View {
                     value: item.portionSize,
                     color: .purple
                 )
-
-                metadataRow(
-                    icon: "note.text",
-                    label: "Notes",
-                    value: item.templateNotes,
-                    color: .gray
-                )
             }
             .padding(10)
             .background(Color(.systemGray6))
             .clipShape(RoundedRectangle(cornerRadius: 12))
 
+            // MARK: - Notes Block (Separate)
+            if let notes = item.templateNotes, !notes.isEmpty {
+
+                VStack(alignment: .leading, spacing: 6) {
+
+                    HStack(spacing: 8) {
+                        Image(systemName: "note.text")
+                            .foregroundColor(.gray)
+                            .frame(width: 18)
+
+                        Text("Notes")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        Spacer()
+                    }
+
+                    Text(notes)
+                        .font(.subheadline)      // 👈 Slightly larger
+                        .foregroundColor(.primary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(12)
+                .background(Color(.systemGray6))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
             // Temperature Input
             if item.tempTaken {
                 VStack(alignment: .leading, spacing: 4) {
