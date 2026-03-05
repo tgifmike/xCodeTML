@@ -19,7 +19,7 @@ struct LocationDetailView: View {
                 Text("Error: \(errorMessage)")
                     .foregroundColor(.red)
             } else {
-                LocationStationsView(locationId: locationId, userId: userId, locationName: locationName)
+                LocationStationsView(locationId: locationId, userId: userId, locationName: locationName, accountName: accountName)
             }
         }
         .navigationTitle("Stations – \(accountName)")

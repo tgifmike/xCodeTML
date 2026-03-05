@@ -7,6 +7,7 @@ struct LineCheckItemInput: Identifiable, Codable, Equatable  {
 
     var temperature: String = ""
     var observations: String = ""
-    var isChecked: Bool = false 
+    var isChecked: Bool? = nil
+    var isMissing: Bool
     
 }
