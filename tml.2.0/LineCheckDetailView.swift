@@ -8,6 +8,8 @@ import SwiftUI
 struct LineCheckDetailView: View {
     let lineCheckId: String
     let locationId: String
+    let locationName: String
+    let accountName: String
     
     @State private var lineCheck: LineCheckDto?
     @State private var stations: [LineCheckStationInput] = []
@@ -17,12 +19,15 @@ struct LineCheckDetailView: View {
     @State private var saveError: String?
     @State private var saveSuccess = false
     @State private var originalStations: [LineCheckStationInput] = []
+    @State private var startTime = Date()
     
     private var hasChanges: Bool {
         stations != originalStations
     }
     
     @FocusState private var focusedField: LineCheckField?
+    
+    @Environment(\.dismiss) private var dismiss
     
     var body: some View {
         NavigationStack {
@@ -37,7 +42,7 @@ struct LineCheckDetailView: View {
                 } else if let lineCheck {
                     ScrollView {
                         VStack(spacing: 16) {
-                            headerSection(lineCheck: lineCheck)
+                            headerSection(lineCheck: lineCheck, accountName: accountName, locationName: locationName)
                             
                             ForEach($stations) { $station in
                                 LineCheckStationSection(
@@ -77,22 +82,80 @@ struct LineCheckDetailView: View {
         }
     }
     
-    // MARK: Header
-    private func headerSection(lineCheck: LineCheckDto) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Conducted By: \(lineCheck.username ?? "Unknown")")
-                .font(.headline)
-            Text("Line Check ID: \(lineCheck.id)")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-            Text("Location ID: \(locationId)")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
+    private var startTimeString: String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: Date())
+    }
+    
+    private func headerSection(
+        lineCheck: LineCheckDto,
+        accountName: String,
+        locationName: String
+    ) -> some View {
+
+    
+    
+
+        VStack(spacing: 14) {
+
+            // ROW 1
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Label("Conducted By", systemImage: "person.fill")
+                        .font(.subheadline)
+                        .foregroundColor(.primary)
+
+                    Text(lineCheck.username ?? "Unknown")
+                        .font(.headline)
+                        .foregroundColor(.blue)
+                }
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 4) {
+                    Label("Start Time", systemImage: "clock.fill")
+                        .font(.subheadline)
+                        .foregroundColor(.primary)
+
+                    Text(startTimeString)
+                        .font(.headline)
+                        .foregroundColor(.blue)
+                }
+            }
+
+            Divider()
+
+            // ROW 2
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Label("Account Name", systemImage: "building.2.fill")
+                        .font(.subheadline)
+                        .foregroundColor(.primary)
+
+                    Text(accountName)
+                        .font(.headline)
+                    .foregroundColor(.blue)
+                }
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 4) {
+                    Label("Location Name", systemImage: "mappin.and.ellipse")
+                        .font(.subheadline)
+                        .foregroundColor(.primary)
+
+                    Text(locationName)
+                        .font(.headline)
+                    .foregroundColor(.blue)
+                }
+            }
         }
         .padding()
         .background(.background)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .shadow(color: .black.opacity(0.50), radius: 3, y: 2)
     }
     
     // MARK: Save Button
@@ -119,47 +182,66 @@ struct LineCheckDetailView: View {
     private func loadLineCheck() async {
         isLoading = true
         error = nil
-        
+
         do {
-            // ✅ Real API Call
-            let response = try await LineCheckApi.getLineCheckById(
-                lineCheckId: lineCheckId
-            )
-            
-            // Store raw DTO
+            // ✅ Fetch line check from API
+            let response = try await LineCheckApi.getLineCheckById(lineCheckId: lineCheckId)
             lineCheck = response
             
             // ✅ Map DTO → Editable UI State
-            stations = response.stations.compactMap { stationDto in
-                
-                guard let stationUUID = UUID(uuidString: stationDto.id)
-                else { return nil }
-                
-                originalStations = stations
-                
-                let mappedItems: [LineCheckItemInput] = stationDto.items.compactMap { dto in
-                    guard let idString = dto.id,
-                          let uuid = UUID(uuidString: idString)
-                    else { return nil }
+            var mappedStations: [LineCheckStationInput] = []
+
+            for stationDto in response.stations {
+                // Convert station ID string to UUID (fallback to new UUID if invalid)
+                let stationUUID = UUID(uuidString: stationDto.id) ?? UUID()
+
+                // Map items
+                let mappedItems: [LineCheckItemInput] = stationDto.items.map { dto in
+                    let itemUUID = UUID(uuidString: dto.id ?? "") ?? UUID()
                     
-                    return LineCheckItemInput(id: uuid, item: dto)
+                    return LineCheckItemInput(
+                        id: itemUUID,
+                        item: dto,
+                        temperature: dto.temperature != nil ? "\(dto.temperature!)" : "",
+                        observations: dto.observations ?? "",
+                        isChecked: nil,    // existing Yes/No
+                        isMissing: false               // default for new "missing" checkbox
+                    )
                 }
-                
-                return LineCheckStationInput(
+
+                let stationInput = LineCheckStationInput(
                     id: stationUUID,
-                    stationName: stationDto.stationName ?? "Unnamed Station",
+                    //stationName: stationDto.stationName ?? "Unnamed Station",
+                    stationName: stationDto.stationName?.isEmpty == false
+                            ? stationDto.stationName!
+                            : "Unnamed Station",
                     items: mappedItems
                 )
+
+                mappedStations.append(stationInput)
             }
-            
-        } catch {
-            self.error = error.localizedDescription
+
+            stations = mappedStations
+            originalStations = mappedStations
+
+        } catch let err {
+            error = err.localizedDescription
         }
-        
+
         isLoading = false
     }
     
     private func saveLineCheck() async {
+        
+        let requiredItems = stations
+            .flatMap { $0.items }
+            .filter { $0.item.checkMark }
+
+        guard requiredItems.allSatisfy({ $0.isChecked != nil }) else {
+            saveError = "All required items must be marked Yes or No."
+            return
+        }
+        
         guard var currentLineCheck = lineCheck else { return }
         
         isSaving = true
@@ -181,8 +263,10 @@ struct LineCheckDetailView: View {
                             ? nil
                             : Float(itemInput.temperature)
                         
-                        dto.itemChecked = itemInput.isChecked
+                        dto.itemChecked = itemInput.isChecked ?? false
                         dto.observations = itemInput.observations
+                        
+                        
                         
                         return dto
                     }
@@ -193,6 +277,8 @@ struct LineCheckDetailView: View {
             _ = try await LineCheckApi.saveLineCheck(currentLineCheck)
             
             saveSuccess = true
+            // ✅ Go back after success
+                    dismiss()
             
         } catch {
             saveError = error.localizedDescription
@@ -203,10 +289,5 @@ struct LineCheckDetailView: View {
 }
 
 
-// MARK: - Preview
-struct LineCheckDetailView_Previews: PreviewProvider {
-    static var previews: some View {
-        LineCheckDetailView(lineCheckId: "1234", locationId: "5678")
-    }
-}
+
 

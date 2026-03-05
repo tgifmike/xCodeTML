@@ -191,6 +191,7 @@ struct LocationStationsView: View {
     let locationId: String
     let userId: String
     let locationName: String
+    let accountName: String
 
     // MARK: - State
 
@@ -217,7 +218,10 @@ struct LocationStationsView: View {
                 .navigationDestination(item: $createdLineCheckId) { id in
                     LineCheckDetailView(
                         lineCheckId: id,
-                        locationId: locationId
+                        locationId: locationId,
+                        locationName: locationName,
+                        accountName: accountName
+                        
                     )
                 }
         }

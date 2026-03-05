@@ -7,7 +7,7 @@ struct LineCheckItemRow: View {
     
     private var item: LineCheckItemDto { input.item }
     
-    // MARK: - Temperature Validation
+    // Temperature Validation
     private enum TempValidation { case empty, valid, invalid }
     
     private var validation: TempValidation {
@@ -16,7 +16,6 @@ struct LineCheckItemRow: View {
               let min = item.minTemp,
               let max = item.maxTemp
         else { return .empty }
-        
         return (value >= min && value <= max) ? .valid : .invalid
     }
     
@@ -28,7 +27,6 @@ struct LineCheckItemRow: View {
         }
     }
     
-    // MARK: - Metadata Row
     @ViewBuilder
     private func metadataRow(icon: String, label: String, value: String?, color: Color) -> some View {
         if let value, !value.isEmpty {
@@ -47,7 +45,6 @@ struct LineCheckItemRow: View {
         }
     }
     
-    // MARK: - Body
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             
@@ -55,10 +52,10 @@ struct LineCheckItemRow: View {
             Text(item.itemName ?? "-")
                 .font(.headline)
             
-            // MARK: - Metadata + Right Panel Inline
+            // Metadata + Right Panel
             HStack(alignment: .top, spacing: 12) {
                 
-                // LEFT — Metadata Grid (~70%)
+                // LEFT Metadata
                 VStack(alignment: .leading, spacing: 6) {
                     metadataRow(icon: "clock", label: "Shelf Life", value: item.shelfLife, color: .orange)
                     metadataRow(icon: "square.grid.2x2", label: "Pan Size", value: item.panSize, color: .green)
@@ -70,11 +67,11 @@ struct LineCheckItemRow: View {
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .frame(maxWidth: .infinity)
                 
-                // RIGHT — Temperature OR Checkmark (~30%)
+                // RIGHT Panel
                 VStack(spacing: 6) {
                     
+                    // Temperature Input
                     if item.tempTaken {
-                        // Temperature Inline
                         HStack(spacing: 6) {
                             Image(systemName: "thermometer")
                                 .foregroundColor(.blue)
@@ -92,41 +89,84 @@ struct LineCheckItemRow: View {
                                 )
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                                 .frame(width: 80)
+                                .disabled(input.isMissing) // disable if missing
                         }
                         if validation == .invalid,
                            let min = item.minTemp,
                            let max = item.maxTemp {
-                            Text("Allowed \(Int(min))°F – \(Int(max))°F")
+                            Text("Allowed Range \(Int(min))°F – \(Int(max))°F")
                                 .font(.caption2)
                                 .foregroundColor(.red)
                         }
                     }
                     
+                   
+                    
+                    // Prepared Correctly Buttons
                     if item.checkMark {
-                        // Checkmark Inline
-                        Button {
-                            input.isChecked.toggle()
-                        } label: {
-                            HStack(spacing: 6) {
-                                Image(systemName: "checkmark.circle")
-                                    .foregroundColor(.green)
-                                Text("Item Prepared Correctly")
-                                    .font(.subheadline)
-                                    .foregroundColor(.green)
-                                Image(systemName: input.isChecked ? "checkmark.circle.fill" : "circle")
-                                    .foregroundColor(input.isChecked ? .green : .red)
-                                    .font(.title2)
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Item Prepared Correctly?")
+                                .font(.subheadline)
+                                .foregroundColor(.blue)
+                            
+                            HStack(spacing: 16) {
+                                Button {
+                                    input.isChecked = true
+                                } label: {
+                                    Label("Yes", systemImage: "checkmark.circle.fill")
+                                        .foregroundColor(input.isChecked == true ? .green : .gray)
+                                }
+                                .buttonStyle(.plain)
+                                .disabled(input.isMissing)
                                 
+                                Button {
+                                    input.isChecked = false
+                                } label: {
+                                    Label("No", systemImage: "xmark.circle.fill")
+                                        .foregroundColor(input.isChecked == false ? .red : .gray)
+                                }
+                                .buttonStyle(.plain)
+                                .disabled(input.isMissing)
                             }
                         }
-                        .buttonStyle(.plain)
                     }
                     
+                    // Item Missing Toggle
+//                    HStack(spacing: 6){
+//                        Toggle("Item Missing", isOn: $input.isMissing)
+//                            .onChange(of: input.isMissing) { missing in
+//                                if missing {
+//                                    input.isChecked = nil
+//                                    input.temperature = ""
+//                                }
+//                            }
+//                    }
+//                    .foregroundColor(.red)
+                    HStack(spacing: 12) {
+
+                        Text("Item Missing")
+                            .font(.subheadline)
+                            .foregroundColor(.red)
+
+                        Toggle("", isOn: $input.isMissing)
+                            .labelsHidden()
+                            .tint(.red)   // makes the switch red when ON
+                            .onChange(of: input.isMissing) { missing in
+                                if missing {
+                                    input.isChecked = nil
+                                    input.temperature = ""
+                                }
+                            }
+
+                    }
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.top, 10)
+                
                 }
-                .frame(width: 320) // ~30% width
+                .frame(width: 320)
             }
             
-            // MARK: - Notes
+            // Notes
             if let notes = item.templateNotes, !notes.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 8) {
@@ -147,17 +187,15 @@ struct LineCheckItemRow: View {
                 .clipShape(RoundedRectangle(cornerRadius: 12))
             }
             
-            // MARK: - Observations
+            // Observations
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 8) {
                     Image(systemName: "square.and.pencil")
                         .foregroundColor(.gray)
                         .frame(width: 18)
-                    
                     Text("Observations")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    
                     Spacer()
                 }
                 
