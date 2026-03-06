@@ -1,9 +1,6 @@
+
 import SwiftUI
 import Foundation
-import SwiftUI
-
-
-// MARK: - LineCheckDetailView
 
 struct LineCheckDetailView: View {
     let lineCheckId: String
@@ -19,15 +16,23 @@ struct LineCheckDetailView: View {
     @State private var saveError: String?
     @State private var saveSuccess = false
     @State private var originalStations: [LineCheckStationInput] = []
-    @State private var startTime = Date()
-    
-    private var hasChanges: Bool {
-        stations != originalStations
-    }
     
     @FocusState private var focusedField: LineCheckField?
-    
     @Environment(\.dismiss) private var dismiss
+    
+    private var hasChanges: Bool { stations != originalStations }
+    
+    private var totalItems: Int { stations.flatMap { $0.items }.count }
+    private var completedItems: Int { stations.flatMap { $0.items }.filter { !$0.temperature.isEmpty || $0.isMissing || $0.isChecked != nil }.count }
+    private var progress: Double { totalItems > 0 ? Double(completedItems) / Double(totalItems) : 0 }
+    private var progressColor: Color { progress == 1 ? .green : progress > 0.7 ? .orange : .red }
+    
+    private var startTimeString: String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: Date())
+    }
     
     var body: some View {
         NavigationStack {
@@ -41,20 +46,30 @@ struct LineCheckDetailView: View {
                         .padding()
                 } else if let lineCheck {
                     ScrollView {
-                        VStack(spacing: 16) {
-                            headerSection(lineCheck: lineCheck, accountName: accountName, locationName: locationName)
-                            
-                            ForEach($stations) { $station in
-                                LineCheckStationSection(
-                                    stationName: station.stationName,
-                                    items: $station.items,
-                                    focusedField: $focusedField
+                        LazyVStack(spacing: 8, pinnedViews: [.sectionHeaders]) {
+
+                            Section(header: progressSection) {
+
+                                headerSection(
+                                    lineCheck: lineCheck,
+                                    accountName: accountName,
+                                    locationName: locationName
                                 )
+
+                                ForEach($stations) { $station in
+                                    LineCheckStationSection(
+                                        stationName: station.stationName,
+                                        items: $station.items,
+                                        focusedField: $focusedField
+                                    )
+                                }
+
+                                saveButton
+                                    .padding(.top, 8)
+                                    .padding(.bottom, 16)
                             }
-                            
-                            saveButton
                         }
-                        .padding()
+                        .padding(.horizontal)
                         .padding(.bottom, 150)
                     }
                     .scrollDismissesKeyboard(.interactively)
@@ -67,103 +82,89 @@ struct LineCheckDetailView: View {
             .navigationBarTitleDisplayMode(.inline)
         }
         .task { await loadLineCheck() }
-        .alert("Save Failed", isPresented: Binding(
-            get: { saveError != nil },
-            set: { _ in saveError = nil }
-        )) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text(saveError ?? "")
-        }
+        .alert("Save Failed", isPresented: Binding(get: { saveError != nil }, set: { _ in saveError = nil })) {
+            Button("OK", role: .cancel) {}
+        } message: { Text(saveError ?? "") }
         .alert("Success", isPresented: $saveSuccess) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text("Line Check saved successfully.")
-        }
+            Button("OK", role: .cancel) {}
+        } message: { Text("Line Check saved successfully.") }
     }
     
-    private var startTimeString: String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .short
-        return formatter.string(from: Date())
-    }
-    
-    private func headerSection(
-        lineCheck: LineCheckDto,
-        accountName: String,
-        locationName: String
-    ) -> some View {
-
-    
-    
-
-        VStack(spacing: 14) {
-
-            // ROW 1
+    // MARK: Header
+    private func headerSection(lineCheck: LineCheckDto, accountName: String, locationName: String) -> some View {
+        VStack(spacing: 10) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Label("Conducted By", systemImage: "person.fill")
                         .font(.subheadline)
                         .foregroundColor(.primary)
-
                     Text(lineCheck.username ?? "Unknown")
                         .font(.headline)
                         .foregroundColor(.blue)
                 }
-
                 Spacer()
-
                 VStack(alignment: .trailing, spacing: 4) {
                     Label("Start Time", systemImage: "clock.fill")
                         .font(.subheadline)
                         .foregroundColor(.primary)
-
                     Text(startTimeString)
                         .font(.headline)
                         .foregroundColor(.blue)
                 }
             }
-
+            
             Divider()
-
-            // ROW 2
+            
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Label("Account Name", systemImage: "building.2.fill")
                         .font(.subheadline)
                         .foregroundColor(.primary)
-
                     Text(accountName)
                         .font(.headline)
-                    .foregroundColor(.blue)
+                        .foregroundColor(.blue)
                 }
-
                 Spacer()
-
                 VStack(alignment: .trailing, spacing: 4) {
                     Label("Location Name", systemImage: "mappin.and.ellipse")
                         .font(.subheadline)
                         .foregroundColor(.primary)
-
                     Text(locationName)
                         .font(.headline)
-                    .foregroundColor(.blue)
+                        .foregroundColor(.blue)
                 }
             }
         }
         .padding()
         .background(.background)
         .clipShape(RoundedRectangle(cornerRadius: 14))
-        .shadow(color: .black.opacity(0.50), radius: 3, y: 2)
+        .shadow(color: .black.opacity(0.5), radius: 3, y: 2)
+    }
+    
+    // MARK: Progress Section
+    private var progressSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text("Progress").font(.headline)
+                Spacer()
+                Text("\(completedItems) / \(totalItems) Completed")
+                    .font(.subheadline)
+                    .foregroundColor(.blue)
+            }
+            ProgressView(value: progress)
+                .progressViewStyle(.linear)
+                .tint(progressColor)
+        }
+        .padding()
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .shadow(color: .black.opacity(0.1), radius: 3, y: 2)
     }
     
     // MARK: Save Button
     private var saveButton: some View {
         Button {
-            Task {
-                await saveLineCheck()
-            }
+            Task { await saveLineCheck() }
         } label: {
             if isSaving {
                 ProgressView()
@@ -171,123 +172,94 @@ struct LineCheckDetailView: View {
             } else {
                 Text("Save Line Check")
                     .frame(maxWidth: .infinity)
+                    .font(.headline.bold())
             }
         }
         .buttonStyle(.borderedProminent)
         .disabled(isSaving || !hasChanges)
-        .padding(.top, 8)
     }
     
-    // MARK: Load Data
+    // MARK: Load Line Check
     private func loadLineCheck() async {
         isLoading = true
         error = nil
-
         do {
-            // ✅ Fetch line check from API
             let response = try await LineCheckApi.getLineCheckById(lineCheckId: lineCheckId)
             lineCheck = response
             
-            // ✅ Map DTO → Editable UI State
-            var mappedStations: [LineCheckStationInput] = []
-
-            for stationDto in response.stations {
-                // Convert station ID string to UUID (fallback to new UUID if invalid)
+            stations = response.stations.map { stationDto in
                 let stationUUID = UUID(uuidString: stationDto.id) ?? UUID()
-
-                // Map items
-                let mappedItems: [LineCheckItemInput] = stationDto.items.map { dto in
-                    let itemUUID = UUID(uuidString: dto.id ?? "") ?? UUID()
-                    
+                let items = stationDto.items.map { itemDto -> LineCheckItemInput in
+                    let itemUUID = UUID(uuidString: itemDto.id ?? "") ?? UUID()
                     return LineCheckItemInput(
                         id: itemUUID,
-                        item: dto,
-                        temperature: dto.temperature != nil ? "\(dto.temperature!)" : "",
-                        observations: dto.observations ?? "",
-                        isChecked: nil,    // existing Yes/No
-                        isMissing: false               // default for new "missing" checkbox
+                        item: itemDto,
+                        temperature: itemDto.temperature != nil ? "\(itemDto.temperature!)" : "",
+                        observations: itemDto.observations ?? "",
+                        isChecked: nil,
+                        isMissing: itemDto.isMissing ?? false
                     )
                 }
-
-                let stationInput = LineCheckStationInput(
+                return LineCheckStationInput(
                     id: stationUUID,
-                    //stationName: stationDto.stationName ?? "Unnamed Station",
-                    stationName: stationDto.stationName?.isEmpty == false
-                            ? stationDto.stationName!
-                            : "Unnamed Station",
-                    items: mappedItems
+                    stationName: stationDto.stationName?.isEmpty == false ? stationDto.stationName! : "Unnamed Station",
+                    items: items
                 )
-
-                mappedStations.append(stationInput)
             }
-
-            stations = mappedStations
-            originalStations = mappedStations
-
+            originalStations = stations
         } catch let err {
-            error = err.localizedDescription
+            self.error = err.localizedDescription
         }
-
         isLoading = false
     }
     
+    // MARK: Save Line Check
     private func saveLineCheck() async {
-        
         let requiredItems = stations
             .flatMap { $0.items }
-            .filter { $0.item.checkMark }
+            .filter { $0.item.checkMark && !$0.isMissing && !$0.item.tempTaken }
 
         guard requiredItems.allSatisfy({ $0.isChecked != nil }) else {
-            saveError = "All required items must be marked Yes or No."
+            saveError = "All item need to be temped, checked or marked missing."
             return
         }
-        
         guard var currentLineCheck = lineCheck else { return }
-        
         isSaving = true
         saveError = nil
-        
         do {
-            // ✅ Map editable stations back into DTO format
             currentLineCheck.stations = stations.map { stationInput in
-                
                 LineCheckStationDto(
                     id: stationInput.id.uuidString,
                     stationName: stationInput.stationName,
                     items: stationInput.items.map { itemInput in
-                        
                         var dto = itemInput.item
-                        
-                        // Update mutable values from UI
-                        dto.temperature = itemInput.temperature.isEmpty
-                            ? nil
-                            : Float(itemInput.temperature)
-                        
-                        dto.itemChecked = itemInput.isChecked ?? false
+//                        dto.temperature = itemInput.temperature.isEmpty ? nil : Float(itemInput.temperature)
+//                        dto.itemChecked = itemInput.isChecked ?? false
+//                        dto.observations = itemInput.observations
+                        dto.isMissing = itemInput.isMissing
+
+                        if itemInput.isMissing {
+                            dto.temperature = nil
+                            dto.itemChecked = nil   // Use nil instead of false
+                        } else if itemInput.item.tempTaken {
+                            dto.temperature = itemInput.temperature.isEmpty ? nil : Float(itemInput.temperature)
+                            dto.itemChecked = nil
+                        } else {
+                            dto.itemChecked = itemInput.isChecked
+                            dto.temperature = nil
+                        }
+
                         dto.observations = itemInput.observations
-                        
-                        
-                        
                         return dto
                     }
                 )
             }
-            
-            // ✅ API Call
             _ = try await LineCheckApi.saveLineCheck(currentLineCheck)
-            
             saveSuccess = true
-            // ✅ Go back after success
-                    dismiss()
-            
+            dismiss()
         } catch {
             saveError = error.localizedDescription
         }
-        
         isSaving = false
     }
 }
-
-
-
-

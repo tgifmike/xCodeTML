@@ -285,13 +285,13 @@ private extension LocationStationsView {
 
             // Select controls
             HStack {
-                Button("Select All") {
+                Button("Select All Stations") {
                     selectedStations = Set(stations.map(\.id))
                 }
 
                 Spacer()
 
-                Button("Clear") {
+                Button("Clear All Stations") {
                     selectedStations.removeAll()
                 }
             }
@@ -313,7 +313,7 @@ private extension LocationStationsView {
             }
 
             Text("\(selectedStations.count) Selected")
-                .font(.caption)
+                .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
     }
@@ -333,6 +333,7 @@ private extension LocationStationsView {
                 } else {
                     Text("Create Line Check")
                         .frame(maxWidth: .infinity)
+                        .font(Font.headline.bold())
                 }
             }
         }
