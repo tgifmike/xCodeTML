@@ -52,7 +52,23 @@ final class LineCheckApi {
 
         let (data, response) = try await URLSession.shared.data(for: request)
 
-        try validate(response)
+        guard let http = response as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
+        }
+
+        if !(200...299).contains(http.statusCode) {
+
+            let body = String(data: data, encoding: .utf8) ?? "No body"
+            
+            print("❌ HTTP Status:", http.statusCode)
+            print("❌ Server response:", body)
+
+            throw NSError(
+                domain: "ServerError",
+                code: http.statusCode,
+                userInfo: [NSLocalizedDescriptionKey: body]
+            )
+        }
 
         return try JSONDecoder().decode(LineCheckDto.self, from: data)
     }
@@ -62,7 +78,7 @@ final class LineCheckApi {
     // ------------------------------------------------
     static func saveLineCheck(
         _ lineCheck: LineCheckDto
-    ) async throws -> Bool {
+    ) async throws {
 
         guard let url = URL(
             string: "\(Config.baseURL)\(endpoint)/save"
@@ -76,22 +92,34 @@ final class LineCheckApi {
 
         let body = try JSONEncoder().encode(lineCheck)
 
-        // Debug log (same as Android Log.d)
-        if let jsonString = String(data: body, encoding: .utf8) {
-            print("📤 Sending payload:", jsonString)
+        if let json = String(data: body, encoding: .utf8) {
+            print("📤 Payload:", json)
         }
 
         request.httpBody = body
 
-        let (_, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await URLSession.shared.data(for: request)
 
-        try validate(response)
+        guard let http = response as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
+        }
 
-        print("✅ Line check saved")
+        if !(200...299).contains(http.statusCode) {
 
-        return true
+            let serverMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
+
+            print("❌ Status:", http.statusCode)
+            print("❌ Server:", serverMessage)
+
+            throw NSError(
+                domain: "ServerError",
+                code: http.statusCode,
+                userInfo: [NSLocalizedDescriptionKey: serverMessage]
+            )
+        }
+
+        print("✅ Save successful")
     }
-
     // ------------------------------------------------
     // Shared response validation
     // ------------------------------------------------

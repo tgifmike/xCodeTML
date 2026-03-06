@@ -13,11 +13,11 @@ struct LineCheckItemDto: Identifiable, Codable, Equatable {
     let toolName: String?
     let portioned: Bool
     let portionSize: String?
-    var itemChecked: Bool
+    var itemChecked: Bool?
     var temperature: Float?
     let minTemp: Float?
     let maxTemp: Float?
     var observations: String?
     var isMissing: Bool?
-    let sortOrder: Int? = 0
+    var sortOrder: Int? = 0
 }
