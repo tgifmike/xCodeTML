@@ -70,7 +70,9 @@ struct LineCheckDetailView: View {
                             }
                         }
                         .padding(.horizontal)
-                        .padding(.bottom, 150)
+                        .safeAreaInset(edge: .bottom) {
+                            Color.clear.frame(height: 40)
+                        }
                     }
                     .scrollDismissesKeyboard(.interactively)
                 } else {
@@ -263,3 +265,4 @@ struct LineCheckDetailView: View {
         isSaving = false
     }
 }
+
