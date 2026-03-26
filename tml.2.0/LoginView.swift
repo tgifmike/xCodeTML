@@ -152,6 +152,7 @@
 
 import SwiftUI
 import GoogleSignIn
+import AuthenticationServices
 
 struct LoginView: View {
 
@@ -211,6 +212,20 @@ struct LoginView: View {
             }
             .disabled(isLoading)
 
+//            Spacer()
+            
+            SignInWithAppleButton(
+                .signIn,
+                onRequest: { request in
+                    request.requestedScopes = [.fullName, .email]
+                },
+                onCompletion: handleAppleLogin
+            )
+            .signInWithAppleButtonStyle(.black)
+            .frame(height: 56)
+            .frame(maxWidth: 250)
+            .cornerRadius(24)
+            
             Spacer()
 
             Text("TML v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")")
@@ -256,6 +271,121 @@ extension LoginView {
 
             sendTokenToBackend(idToken: idToken)
         }
+    }
+    
+    func handleAppleLogin(result: Result<ASAuthorization, Error>) {
+
+        switch result {
+
+        case .success(let authorization):
+
+            guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
+                  let identityToken = credential.identityToken,
+                  let tokenString = String(data: identityToken, encoding: .utf8)
+            else {
+                errorMessage = "Unable to retrieve Apple identity token."
+                return
+            }
+
+            sendAppleTokenToBackend(idToken: tokenString)
+
+        case .failure(let error):
+            errorMessage = error.localizedDescription
+        }
+    }
+    
+    func sendAppleTokenToBackend(idToken: String) {
+
+        guard let url = URL(string:
+            "https://app-javabackend-5e1ae1d5056c.herokuapp.com/users/mobile/apple"
+        ) else {
+            errorMessage = "Invalid backend URL."
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let body = ["idToken": idToken]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
+
+            DispatchQueue.main.async {
+                isLoading = false
+            }
+
+            if let error = error {
+                DispatchQueue.main.async {
+                    errorMessage = error.localizedDescription
+                }
+                return
+            }
+
+            // ✅ DEFINE httpResponse HERE
+            guard let data = data,
+                  let httpResponse = response as? HTTPURLResponse else {
+
+                DispatchQueue.main.async {
+                    errorMessage = "No response from backend."
+                }
+                return
+            }
+
+            // ✅ DEBUG PRINTS HERE
+            print("Status Code:", httpResponse.statusCode)
+            print("Response:", String(data: data, encoding: .utf8) ?? "No body")
+
+            guard httpResponse.statusCode == 200 else {
+
+                DispatchQueue.main.async {
+                    errorMessage =
+                        "Apple login failed (\(httpResponse.statusCode))"
+                }
+
+                return
+            }
+
+            do {
+
+                let json =
+                    try JSONSerialization.jsonObject(with: data)
+                    as? [String: Any]
+
+                guard let token = json?["token"] as? String,
+                      let user = json?["user"] as? [String: Any] else {
+
+                    DispatchQueue.main.async {
+                        errorMessage = "Invalid backend response."
+                    }
+
+                    return
+                }
+
+                let session = UserSession(
+                    jwt: token,
+                    userId: user["id"] as? String ?? "",
+                    userName: user["name"] as? String ?? "",
+                    email: user["email"] as? String ?? "",
+                    userImage: user["image"] as? String,
+                    appRole: user["appRole"] as? String ?? "MEMBER",
+                    accessRole: user["accessRole"] as? String ?? "USER"
+                )
+
+                DispatchQueue.main.async {
+                    onLoginSuccess(session)
+                }
+
+            } catch {
+
+                DispatchQueue.main.async {
+                    errorMessage =
+                        "Failed to parse backend response."
+                }
+            }
+
+        }.resume()
     }
 
     func sendTokenToBackend(idToken: String) {
