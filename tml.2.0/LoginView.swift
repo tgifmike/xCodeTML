@@ -4,12 +4,17 @@ import AuthenticationServices
 
 struct LoginView: View {
 
+    @Environment(\.colorScheme) private var colorScheme
+    
     let onLoginSuccess: (UserSession) -> Void
 
     @State private var isLoading = false
     @State private var errorMessage: String?
+    @State private var showErrorAlert = false
+    @State private var attemptedEmail: String?
 
     var body: some View {
+
         VStack {
 
             Spacer()
@@ -27,22 +32,18 @@ struct LoginView: View {
                 .multilineTextAlignment(.center)
                 .padding()
 
-            if let errorMessage = errorMessage {
-                Text(errorMessage)
-                    .foregroundColor(.red)
-                    .padding(.horizontal)
-            }
+            Button(action: signInWithGoogle) {
 
-            Button(action: {
-                signInWithGoogle()
-            }) {
                 if isLoading {
                     ProgressView()
                         .tint(.white)
                         .frame(height: 56)
                         .frame(maxWidth: 250)
+
                 } else {
+
                     HStack {
+
                         Image("ic_google_logo")
                             .resizable()
                             .frame(width: 24, height: 24)
@@ -55,14 +56,13 @@ struct LoginView: View {
                     .frame(maxWidth: 250)
                     .background(Color.blue)
                     .foregroundColor(.white)
-                    .cornerRadius(24)
+                    .cornerRadius(26)
                 }
             }
             .buttonStyle(.plain)
             .disabled(isLoading)
 
-//            Spacer()
-            
+
             SignInWithAppleButton(
                 .signIn,
                 onRequest: { request in
@@ -74,7 +74,16 @@ struct LoginView: View {
             .frame(height: 56)
             .frame(maxWidth: 250)
             .cornerRadius(24)
-            
+            .overlay(
+                RoundedRectangle(cornerRadius: 24)
+                    .stroke(
+                        colorScheme == .dark
+                        ? Color.white.opacity(0.4)
+                        : Color.black.opacity(0.2),
+                        lineWidth: 1
+                    )
+            )
+
             Spacer()
 
             Text("TML v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")")
@@ -82,247 +91,301 @@ struct LoginView: View {
                 .padding(.bottom, 12)
         }
         .padding()
+        .alert("Login Failed",
+               isPresented: $showErrorAlert) {
+
+            Button("OK", role: .cancel) {}
+
+        } message: {
+
+            Text(errorMessage ?? "Unknown error")
+        }
     }
 }
 
-// MARK: - Google Sign In
+//////////////////////////////////////////////////////////////
+// MARK: GOOGLE LOGIN
+//////////////////////////////////////////////////////////////
+
 extension LoginView {
 
     func signInWithGoogle() {
 
-        guard let rootVC = UIApplication.shared
-            .connectedScenes
-            .compactMap({ $0 as? UIWindowScene })
-            .first?
-            .windows
-            .first?
-            .rootViewController else {
-                errorMessage = "Unable to access root controller."
-                return
+        guard let rootVC =
+                UIApplication.shared.connectedScenes
+                .compactMap({ $0 as? UIWindowScene })
+                .first?
+                .windows
+                .first?
+                .rootViewController else {
+
+            showError("Unable to access root controller.")
+            return
         }
 
         isLoading = true
         errorMessage = nil
 
-        GIDSignIn.sharedInstance.signIn(withPresenting: rootVC) { result, error in
+        GIDSignIn.sharedInstance.signIn(withPresenting: rootVC) {
+
+            result, error in
 
             if let error = error {
-                isLoading = false
-                errorMessage = error.localizedDescription
+
+                finishLoading()
+                showError(error.localizedDescription)
                 return
             }
 
-            guard let idToken = result?.user.idToken?.tokenString else {
-                isLoading = false
-                errorMessage = "Failed to retrieve ID token."
+            guard let idToken =
+                    result?.user.idToken?.tokenString else {
+
+                finishLoading()
+                showError("Failed to retrieve ID token.")
                 return
             }
 
-            sendTokenToBackend(idToken: idToken)
+            attemptedEmail = result?.user.profile?.email
+
+            sendTokenToBackend(
+                idToken: idToken,
+                endpoint:
+                "https://app-javabackend-5e1ae1d5056c.herokuapp.com/users/mobile"
+            )
         }
     }
-    
+}
+
+//////////////////////////////////////////////////////////////
+// MARK: APPLE LOGIN
+//////////////////////////////////////////////////////////////
+
+extension LoginView {
+
     func handleAppleLogin(result: Result<ASAuthorization, Error>) {
 
         switch result {
 
         case .success(let authorization):
 
-            guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
-                  let identityToken = credential.identityToken,
-                  let tokenString = String(data: identityToken, encoding: .utf8)
-            else {
-                errorMessage = "Unable to retrieve Apple identity token."
+            guard let credential =
+                    authorization.credential
+                    as? ASAuthorizationAppleIDCredential,
+
+                  let identityToken =
+                    credential.identityToken,
+
+                  let tokenString =
+                    String(data: identityToken,
+                           encoding: .utf8) else {
+
+                showError("Unable to retrieve Apple identity token.")
                 return
             }
 
-            sendAppleTokenToBackend(idToken: tokenString)
+            isLoading = true
+
+            sendTokenToBackend(
+                idToken: tokenString,
+                endpoint:
+                "https://app-javabackend-5e1ae1d5056c.herokuapp.com/users/mobile/apple"
+            )
+
 
         case .failure(let error):
-            errorMessage = error.localizedDescription
+
+            showError(error.localizedDescription)
         }
     }
-    
-    func sendAppleTokenToBackend(idToken: String) {
+}
 
-        guard let url = URL(string:
-            "https://app-javabackend-5e1ae1d5056c.herokuapp.com/users/mobile/apple"
-        ) else {
-            errorMessage = "Invalid backend URL."
+//////////////////////////////////////////////////////////////
+// MARK: BACKEND AUTH HANDLER (SHARED)
+//////////////////////////////////////////////////////////////
+
+extension LoginView {
+
+    func sendTokenToBackend(
+        idToken: String,
+        endpoint: String
+    ) {
+
+        guard let url = URL(string: endpoint) else {
+
+            finishLoading()
+            showError("Invalid backend URL.")
             return
         }
 
         var request = URLRequest(url: url)
+
         request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        request.setValue(
+            "application/json",
+            forHTTPHeaderField: "Content-Type"
+        )
 
         let body = ["idToken": idToken]
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
 
-        URLSession.shared.dataTask(with: request) { data, response, error in
+        request.httpBody =
+            try? JSONSerialization.data(
+                withJSONObject: body
+            )
+
+        URLSession.shared.dataTask(with: request) {
+
+            data, response, error in
 
             DispatchQueue.main.async {
-                isLoading = false
+
+                finishLoading()
             }
 
             if let error = error {
+
                 DispatchQueue.main.async {
-                    errorMessage = error.localizedDescription
+
+                    showError(error.localizedDescription)
                 }
+
                 return
             }
 
-            // ✅ DEFINE httpResponse HERE
             guard let data = data,
-                  let httpResponse = response as? HTTPURLResponse else {
+                  let httpResponse =
+                    response as? HTTPURLResponse else {
 
                 DispatchQueue.main.async {
-                    errorMessage = "No response from backend."
-                }
-                return
-            }
 
-            // ✅ DEBUG PRINTS HERE
-            print("Status Code:", httpResponse.statusCode)
-            print("Response:", String(data: data, encoding: .utf8) ?? "No body")
-
-            guard httpResponse.statusCode == 200 else {
-
-                DispatchQueue.main.async {
-                    errorMessage =
-                        "Apple login failed (\(httpResponse.statusCode))"
+                    showError("No response from backend.")
                 }
 
                 return
             }
 
-            do {
+            print("Status:", httpResponse.statusCode)
 
-                let json =
-                    try JSONSerialization.jsonObject(with: data)
-                    as? [String: Any]
+            switch httpResponse.statusCode {
 
-                guard let token = json?["token"] as? String,
-                      let user = json?["user"] as? [String: Any] else {
+            case 200:
 
-                    DispatchQueue.main.async {
-                        errorMessage = "Invalid backend response."
-                    }
+                handleSuccessfulLogin(data: data)
 
-                    return
-                }
-
-                let session = UserSession(
-                    jwt: token,
-                    userId: user["id"] as? String ?? "",
-                    userName: user["name"] as? String ?? "",
-                    email: user["email"] as? String ?? "",
-                    userImage: user["image"] as? String,
-                    appRole: user["appRole"] as? String ?? "MEMBER",
-                    accessRole: user["accessRole"] as? String ?? "USER"
-                )
+            case 403:
 
                 DispatchQueue.main.async {
-                    onLoginSuccess(session)
+
+                    showError(
+                        "Your account exists but has not been activated yet. Contact your administrator."
+                    )
                 }
 
-            } catch {
+            case 401, 404:
 
                 DispatchQueue.main.async {
-                    errorMessage =
-                        "Failed to parse backend response."
+
+                    showError(
+                        attemptedEmail != nil
+                        ? "The account \(attemptedEmail!) is not authorized."
+                        : "This account is not authorized."
+                    )
+                }
+
+            default:
+
+                DispatchQueue.main.async {
+
+                    showError(
+                        "Login failed. Please try again."
+                    )
                 }
             }
 
         }.resume()
     }
+}
 
-    func sendTokenToBackend(idToken: String) {
+//////////////////////////////////////////////////////////////
+// MARK: SUCCESS PARSER
+//////////////////////////////////////////////////////////////
 
-        guard let url = URL(string: "https://app-javabackend-5e1ae1d5056c.herokuapp.com/users/mobile") else {
-            errorMessage = "Invalid backend URL."
-            isLoading = false
-            return
-        }
+extension LoginView {
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    func handleSuccessfulLogin(data: Data) {
 
-        let body = ["idToken": idToken]
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        do {
 
-        URLSession.shared.dataTask(with: request) { data, response, error in
+            let json =
+                try JSONSerialization.jsonObject(with: data)
+                as? [String: Any]
+
+            guard let token =
+                    json?["token"] as? String,
+
+                  let user =
+                    json?["user"] as? [String: Any] else {
+
+                DispatchQueue.main.async {
+
+                    showError("Invalid backend response.")
+                }
+
+                return
+            }
+
+            let session = UserSession(
+
+                jwt: token,
+
+                userId:
+                user["id"] as? String ?? "",
+
+                userName:
+                user["name"] as? String ?? "",
+
+                email:
+                user["email"] as? String ?? "",
+
+                userImage:
+                user["image"] as? String,
+
+                appRole:
+                user["appRole"] as? String ?? "MEMBER",
+
+                accessRole:
+                user["accessRole"] as? String ?? "USER"
+            )
 
             DispatchQueue.main.async {
-                isLoading = false
+
+                onLoginSuccess(session)
             }
 
-            if let error = error {
-                DispatchQueue.main.async {
-                    errorMessage = error.localizedDescription
-                }
-                return
+        } catch {
+
+            DispatchQueue.main.async {
+
+                showError("Failed to parse backend response.")
             }
+        }
+    }
+}
 
-//            guard let data = data,
-//                  let httpResponse = response as? HTTPURLResponse,
-//                  httpResponse.statusCode == 200 else {
-//                DispatchQueue.main.async {
-//                    errorMessage = "Backend authentication failed."
-//                }
-//                return
-//            }
-            
-            guard let data = data,
-                  let httpResponse = response as? HTTPURLResponse else {
-                DispatchQueue.main.async {
-                    errorMessage = "No response from backend."
-                }
-                return
-            }
+//////////////////////////////////////////////////////////////
+// MARK: HELPERS
+//////////////////////////////////////////////////////////////
 
-            print("Status Code:", httpResponse.statusCode)
-            print("Response:", String(data: data, encoding: .utf8) ?? "No body")
+extension LoginView {
 
-            guard httpResponse.statusCode == 200 else {
-                DispatchQueue.main.async {
-                    errorMessage = "Backend auth failed (\(httpResponse.statusCode))"
-                }
-                return
-            }
+    func showError(_ message: String) {
 
-            do {
-                let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        errorMessage = message
+        showErrorAlert = true
+    }
 
-                guard let token = json?["token"] as? String,
-                      let user = json?["user"] as? [String: Any] else {
-                    DispatchQueue.main.async {
-                        errorMessage = "Invalid backend response."
-                    }
-                    return
-                }
+    func finishLoading() {
 
-                let session = UserSession(
-                    jwt: token,
-                    userId: user["id"] as? String ?? "",
-                    userName: user["name"] as? String ?? "",
-                    email: user["email"] as? String ?? "",
-                    userImage: user["image"] as? String,
-                    appRole: user["appRole"] as? String ?? "MEMBER",
-                    accessRole: user["accessRole"] as? String ?? "USER"
-                )
-
-                DispatchQueue.main.async {
-                    onLoginSuccess(session)
-                }
-
-            } catch {
-                DispatchQueue.main.async {
-                    errorMessage = "Failed to parse backend response."
-                }
-            }
-
-        }.resume()
+        isLoading = false
     }
 }
