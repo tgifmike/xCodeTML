@@ -149,8 +149,8 @@ extension LoginView {
 
             sendTokenToBackend(
                 idToken: idToken,
-                endpoint:
-                "https://app-javabackend-5e1ae1d5056c.herokuapp.com/users/mobile"
+                provider: "google",
+                endpoint: "https://app-javabackend-5e1ae1d5056c.herokuapp.com/users/oauth-login"
             )
         }
     }
@@ -187,8 +187,8 @@ extension LoginView {
 
             sendTokenToBackend(
                 idToken: tokenString,
-                endpoint:
-                "https://app-javabackend-5e1ae1d5056c.herokuapp.com/users/mobile/apple"
+                provider: "apple",
+                endpoint: "https://app-javabackend-5e1ae1d5056c.herokuapp.com/users/oauth-login"
             )
 
 
@@ -207,6 +207,7 @@ extension LoginView {
 
     func sendTokenToBackend(
         idToken: String,
+        provider: String,
         endpoint: String
     ) {
 
@@ -226,7 +227,10 @@ extension LoginView {
             forHTTPHeaderField: "Content-Type"
         )
 
-        let body = ["idToken": idToken]
+        let body = [
+            "idToken": idToken,
+            "provider": provider
+        ]
 
         request.httpBody =
             try? JSONSerialization.data(
@@ -323,8 +327,11 @@ extension LoginView {
             guard let token =
                     json?["token"] as? String,
 
-                  let user =
-                    json?["user"] as? [String: Any] else {
+                  let userId =
+                    json?["userId"] as? String,
+
+                  let email =
+                    json?["email"] as? String else {
 
                 DispatchQueue.main.async {
 
@@ -338,23 +345,19 @@ extension LoginView {
 
                 jwt: token,
 
-                userId:
-                user["id"] as? String ?? "",
+                userId: userId,
 
                 userName:
-                user["name"] as? String ?? "",
+                json?["userName"] as? String ?? "",
 
-                email:
-                user["email"] as? String ?? "",
+                email: email,
 
-                userImage:
-                user["image"] as? String,
+                userImage: nil,
 
                 appRole:
-                user["appRole"] as? String ?? "MEMBER",
+                json?["role"] as? String ?? "MEMBER",
 
-                accessRole:
-                user["accessRole"] as? String ?? "USER"
+                accessRole: "USER"
             )
 
             DispatchQueue.main.async {
