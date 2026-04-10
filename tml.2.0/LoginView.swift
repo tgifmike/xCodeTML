@@ -318,6 +318,8 @@ extension LoginView {
 
     func handleSuccessfulLogin(data: Data) {
 
+        print("RAW LOGIN RESPONSE:", String(data: data, encoding: .utf8) ?? "nil")
+        
         do {
 
             let json =
@@ -334,41 +336,28 @@ extension LoginView {
                     json?["email"] as? String else {
 
                 DispatchQueue.main.async {
-
                     showError("Invalid backend response.")
                 }
-
                 return
             }
 
             let session = UserSession(
-
                 jwt: token,
-
                 userId: userId,
-
-                userName:
-                json?["userName"] as? String ?? "",
-
+                userName: json?["name"] as? String ?? "",
                 email: email,
-
-                userImage: nil,
-
-                appRole:
-                json?["role"] as? String ?? "MEMBER",
-
-                accessRole: "USER"
+                userImage: json?["userImage"] as? String,
+                appRole: json?["appRole"] as? String ?? "MEMBER",
+                accessRole: json?["accessRole"] as? String ?? "USER"
             )
 
             DispatchQueue.main.async {
-
                 onLoginSuccess(session)
             }
 
         } catch {
 
             DispatchQueue.main.async {
-
                 showError("Failed to parse backend response.")
             }
         }
