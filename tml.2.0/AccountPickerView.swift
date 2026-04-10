@@ -33,64 +33,126 @@ struct AccountPickerView: View {
                         .padding()
                 } else {
                     
-                    Text("Welcome, \(session.userName)")
-                        .font(.title)
-                        .padding(.horizontal)
-                        .foregroundStyle(Color(Color.blue))
+//                    Text("Welcome, \(session.userName)")
+//                        .font(.title)
+//                        .padding(.horizontal)
+//                        .foregroundStyle(Color(Color.blue))
+                    
+                    HStack(spacing: 12) {
+
+                        if let imageUrl = session.userImage,
+                           let url = URL(string: imageUrl) {
+
+                            AsyncImage(url: url) { image in
+                                image
+                                    .resizable()
+                                    .scaledToFill()
+                            } placeholder: {
+                                ProgressView()
+                            }
+                            .frame(width: 34, height: 34)
+                            .clipShape(Circle())
+
+                        } else {
+
+                            Image(systemName: "person.circle.fill")
+                                .resizable()
+                                .frame(width: 44, height: 44)
+                                .foregroundColor(.gray)
+                        }
+
+                        Text("Welcome, \(session.userName)")
+                            .font(.title)
+                            .foregroundStyle(.blue)
+
+                        Spacer()
+                    }
+                    .padding(.horizontal)
                     
                     Text("Select your account:")
                         .font(.headline)
                         .padding(.horizontal)
                     
-//                    if isLoading {
-//                        ProgressView()
-//                            .frame(maxWidth: .infinity)
-//                            .padding()
-//                    }
                     
                     List(accounts) { account in
                         NavigationLink(
                             destination: AccountDetailView(
+                                session: session,
                                 accountId: account.id,
                                 accountName: account.name,
                                 userId: session.userId,
                                 onLogout: onLogout
                             )
                         ) {
-                            HStack {
+                            HStack(spacing: 12) {
+
+                                if let base64 = account.imageBase64,
+                                   let data = Data(base64Encoded: base64),
+                                   let uiImage = UIImage(data: data) {
+
+                                    Image(uiImage: uiImage)
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: 40, height: 40)
+                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                                } else {
+
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(Color.gray.opacity(0.3))
+                                        .frame(width: 40, height: 40)
+                                        .overlay(
+                                            Image(systemName: "building.2")
+                                                .foregroundColor(.gray)
+                                        )
+                                }
+
                                 Text(account.name)
+                                    .font(.body)
+
                                 Spacer()
-                                
+
                                 if account.active {
                                     Text("Active")
                                         .foregroundColor(.green)
                                         .font(.caption)
                                 }
                             }
+                            .padding(.vertical, 6)
                         }
-                        
-                        //                    List(accounts) { account in
-                        //                        HStack {
-                        //                            Text(account.name)
-                        //                                .font(.headline)
-                        //
-                        //                            Spacer()
-                        //
-                        //                            if account.active {
-                        //                                Text("Active")
-                        //                                    .foregroundColor(.green)
-                        //                                    .font(.caption)
-                        //                            }
-                        //                        }
-                        //                        .padding(.vertical, 4)
-                        //                    }
-                        //                }
                     }
-                    //   .navigationTitle("Select Account:")
                     .toolbar {
                         ToolbarItem(placement: .topBarTrailing) {
-                            Button("Sign Out") {
-                                signOut()
+
+                            Menu {
+
+                                Button(role: .destructive) {
+                                    signOut()
+                                } label: {
+                                    Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
+                                }
+
+                            } label: {
+
+                                Group {
+
+                                    if let imageUrl = session.userImage,
+                                       let url = URL(string: imageUrl) {
+
+                                        AsyncImage(url: url) { image in
+                                            image.resizable()
+                                        } placeholder: {
+                                            ProgressView()
+                                        }
+
+                                    } else {
+
+                                        Image(systemName: "person.circle.fill")
+                                            .resizable()
+                                    }
+                                }
+                                .frame(width: 34, height: 34)
+                                .clipShape(Circle())
                             }
                         }
                     }

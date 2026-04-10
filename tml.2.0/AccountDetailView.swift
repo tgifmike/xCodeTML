@@ -3,6 +3,8 @@ import GoogleSignIn
 
 struct AccountDetailView: View {
     
+    let session: UserSession 
+    
     let accountId: String
     let accountName: String
     let userId: String
@@ -45,7 +47,8 @@ struct AccountDetailView: View {
                                 userId: userId,
                                 accountName: accountName,
                                 locationName: location.name,
-                                
+                                session: session,
+                                onLogout: onLogout
                             )
                         ) {
                             HStack {
@@ -64,16 +67,37 @@ struct AccountDetailView: View {
             }
            // .navigationTitle("Locations for \(accountName)")
             .toolbar {
-                
-                //            ToolbarItem(placement: .navigationBarLeading) {
-                //                Button("Back") {
-                //                    dismiss()
-                //                }
-                //            }
-                
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Sign Out") {
-                        signOut()
+
+                    Menu {
+
+                        Button(role: .destructive) {
+                            signOut()
+                        } label: {
+                            Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
+                        }
+
+                    } label: {
+
+                        Group {
+
+                            if let imageUrl = session.userImage,
+                               let url = URL(string: imageUrl) {
+
+                                AsyncImage(url: url) { image in
+                                    image.resizable()
+                                } placeholder: {
+                                    ProgressView()
+                                }
+
+                            } else {
+
+                                Image(systemName: "person.circle.fill")
+                                    .resizable()
+                            }
+                        }
+                        .frame(width: 34, height: 34)
+                        .clipShape(Circle())
                     }
                 }
             }

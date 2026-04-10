@@ -1,190 +1,5 @@
-//
-//import SwiftUI
-//
-//struct LocationStationsView: View {
-//    
-//    let locationId: String
-//    let userId: String
-//    
-//    @State private var stations: [Station] = []
-//    @State private var selectedStations: Set<String> = []
-//    @State private var isLoading = true
-//    @State private var errorMessage: String?
-//    @State private var creatingLineCheck = false
-//    @State private var createdLineCheckId: String?
-//    @State private var showSuccess = false
-// //   @State private var selectionMode: SelectionMode = .none
-//    
-//    var body: some View {
-//        VStack(alignment: .leading, spacing: 16) {
-//            
-//            // Loading
-//            if isLoading {
-//                ProgressView("Loading stations...")
-//            }
-//            
-//            // Error
-//            else if let errorMessage {
-//                Text("Error: \(errorMessage)")
-//                    .foregroundColor(.red)
-//            }
-//            
-//            // Empty
-//            else if stations.isEmpty {
-//                Text("No stations found for this location.\nPlease create stations on the website.")
-//                    .foregroundColor(.red)
-//            }
-//            
-//            // Content
-//            else {
-//                
-//                Text("Select Stations:")
-//                    .font(.title2)
-//                    //.bold()
-//                
-////                HStack {
-////                    Button("Select All") {
-////                        selectedStations = Set(stations.compactMap { $0.id })
-////                    }
-////                    Spacer()
-////
-////                    Button("Deselect All") {
-////                        selectedStations.removeAll()
-////                    }
-////                }
-//                HStack {
-//                    Button("Select All") {
-//                                           selectedStations = Set(stations.compactMap { $0.id })
-//                                       }
-//
-//                    Spacer()
-//
-//                        Button("Deselect All") {
-//                                               selectedStations.removeAll()
-//                                            }
-//                }
-//                .font(.subheadline)
-//                .foregroundStyle(.blue)
-//                .padding(.horizontal)
-//                
-////                enum SelectionMode: String, CaseIterable, Identifiable {
-////                    case all = "Select All"
-////                    case none = "None"
-////
-////                    var id: String { rawValue }
-////                }
-////
-////                Picker("Selection", selection: $selectionMode) {
-////                    ForEach(SelectionMode.allCases) { mode in
-////                        Text(mode.rawValue).tag(mode)
-////                    }
-////                }
-////                .pickerStyle(.segmented)
-////                .padding(.horizontal)
-////                .onChange(of: selectionMode) { _, newValue in
-////                    switch newValue {
-////                    case .all:
-////                        selectedStations = Set(stations.compactMap { $0.id })
-////                    case .none:
-////                        selectedStations.removeAll()
-////                    }
-////                }
-//                
-//                ScrollView(.horizontal, showsIndicators: false) {
-//                    HStack(spacing: 12) {
-//                        ForEach(stations) { station in
-//                            
-//                            StationChip(
-//                                title: station.stationName,
-//                                isSelected: selectedStations.contains(station.id)
-//                            ) {
-//                                toggleSelection(station.id)
-//                            }
-//                        }
-//                    }
-//                }
-//                
-//                Text("Selected: \(selectedStations.count)")
-//                    .foregroundColor(.secondary)
-//                
-//                Spacer().frame(height: 16)
-//
-//                Button {
-//                    Task {
-//                        await createLineCheck()
-//                    }
-//                } label: {
-//                    if creatingLineCheck {
-//                        ProgressView()
-//                    } else {
-//                        Text("Create Line Check")
-//                            .frame(maxWidth: .infinity)
-//                    }
-//                }
-//                .buttonStyle(.borderedProminent)
-//                .disabled(selectedStations.isEmpty || creatingLineCheck)
-//                .alert("Line Check Created!", isPresented: $showSuccess) {
-//                    Button("OK", role: .cancel) {}
-//                }
-//            }
-//                
-//            
-//            Spacer()
-//        }
-//        .padding()
-//        .task {
-//            await loadStations()
-//        }
-//    }
-//    
-//    private func toggleSelection(_ id: String) {
-//        if selectedStations.contains(id) {
-//            selectedStations.remove(id)
-//        } else {
-//            selectedStations.insert(id)
-//        }
-//    }
-//    
-//    private func loadStations() async {
-//        isLoading = true
-//        errorMessage = nil
-//        
-//        do {
-//            stations = try await StationApi.getStationsByLocation(locationId: locationId)
-//        } catch {
-//            errorMessage = error.localizedDescription
-//        }
-//        
-//        isLoading = false
-//    }
-//    
-//    private func createLineCheck() async {
-//
-//        creatingLineCheck = true
-//        errorMessage = nil
-//
-//        do {
-//            let response = try await LineCheckApi.createLineCheck(
-//                userId: userId,
-//                stationIds: Array(selectedStations)
-//            )
-//
-//            print("✅ Line Check Created:", response.id)
-//
-//            createdLineCheckId = response.id
-//            showSuccess = true
-//            // clear selection (same as Android)
-//            selectedStations.removeAll()
-//
-//        } catch {
-//            errorMessage = "Failed to create line check: \(error.localizedDescription)"
-//        }
-//
-//        creatingLineCheck = false
-//    }
-//}
-
 import SwiftUI
+import GoogleSignIn
 
 struct LocationStationsView: View {
 
@@ -192,6 +7,9 @@ struct LocationStationsView: View {
     let userId: String
     let locationName: String
     let accountName: String
+
+    let session: UserSession
+    let onLogout: () -> Void
 
     // MARK: - State
 
@@ -202,18 +20,13 @@ struct LocationStationsView: View {
     @State private var errorMessage: String?
 
     @State private var creatingLineCheck = false
-
-    /// Navigation trigger
     @State private var createdLineCheckId: String?
-
-    // MARK: - Body
 
     var body: some View {
 
         NavigationStack {
 
             content
-                //.navigationTitle("Stations for \(locationName)")
                 .navigationBarTitleDisplayMode(.inline)
                 .navigationDestination(item: $createdLineCheckId) { id in
                     LineCheckDetailView(
@@ -221,8 +34,10 @@ struct LocationStationsView: View {
                         locationId: locationId,
                         locationName: locationName,
                         accountName: accountName
-                        
                     )
+                }
+                .toolbar {
+                    toolbarContent
                 }
         }
         .task {
@@ -271,34 +86,73 @@ private extension LocationStationsView {
 
 private extension LocationStationsView {
 
+    var toolbarContent: some ToolbarContent {
+
+        ToolbarItem(placement: .topBarTrailing) {
+
+            Menu {
+
+                Button(role: .destructive) {
+                    signOut()
+                } label: {
+                    Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
+                }
+
+            } label: {
+
+                // PROFILE IMAGE
+                Group {
+                    if let imageUrl = session.userImage,
+                       let url = URL(string: imageUrl) {
+
+                        AsyncImage(url: url) { image in
+                            image
+                                .resizable()
+                                .scaledToFill()
+                        } placeholder: {
+                            ProgressView()
+                        }
+
+                    } else {
+                        Image(systemName: "person.crop.circle.fill")
+                            .resizable()
+                            .foregroundStyle(.gray)
+                    }
+                }
+                .frame(width: 34, height: 34)
+                .clipShape(Circle())
+            }
+        }
+    }
+}
+
+private extension LocationStationsView {
+
     var stationSelectionUI: some View {
 
         VStack(alignment: .leading, spacing: 12) {
-            
+
             Text("Stations for \(locationName)")
                 .font(.title)
-                .padding(.horizontal)
-                .foregroundStyle(Color(Color.blue))
+                .foregroundStyle(.blue)
 
             Text("Select Stations:")
                 .font(.title2.weight(.semibold))
 
-            // Select controls
             HStack {
-                Button("Select All Stations") {
+                Button("Select All") {
                     selectedStations = Set(stations.map(\.id))
                 }
 
                 Spacer()
 
-                Button("Clear All Stations") {
+                Button("Clear All") {
                     selectedStations.removeAll()
                 }
             }
             .font(.subheadline)
             .foregroundStyle(.blue)
 
-            // Chips
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
                     ForEach(stations) { station in
@@ -326,34 +180,30 @@ private extension LocationStationsView {
         Button {
             Task { await createLineCheck() }
         } label: {
-
             ZStack {
                 if creatingLineCheck {
                     ProgressView()
                 } else {
                     Text("Create Line Check")
                         .frame(maxWidth: .infinity)
-                        .font(Font.headline.bold())
+                        .font(.headline.bold())
                 }
             }
         }
         .buttonStyle(.borderedProminent)
         .controlSize(.large)
         .disabled(selectedStations.isEmpty || creatingLineCheck)
-        .padding(.top, 8)
     }
 }
 
 private extension LocationStationsView {
 
-    func toggleSelection(_ id: String) {
-        if selectedStations.contains(id) {
-            selectedStations.remove(id)
-        } else {
-            selectedStations.insert(id)
-        }
+    func signOut() {
+        GIDSignIn.sharedInstance.signOut()
+        onLogout()
     }
 }
+// MARK: - Actions / API
 
 private extension LocationStationsView {
 
@@ -372,9 +222,15 @@ private extension LocationStationsView {
 
         isLoading = false
     }
-}
 
-private extension LocationStationsView {
+    func toggleSelection(_ id: String) {
+
+        if selectedStations.contains(id) {
+            selectedStations.remove(id)
+        } else {
+            selectedStations.insert(id)
+        }
+    }
 
     func createLineCheck() async {
 
@@ -390,8 +246,6 @@ private extension LocationStationsView {
             print("✅ Line Check Created:", response.id)
 
             selectedStations.removeAll()
-
-            // 🚀 Navigation happens automatically
             createdLineCheckId = response.id
 
         } catch {

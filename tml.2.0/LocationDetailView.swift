@@ -6,6 +6,9 @@ struct LocationDetailView: View {
     let userId: String
     let accountName: String
     let locationName: String
+    let session: UserSession
+    let onLogout: () -> Void
+
     
     @State private var isLoading = true
     @State private var errorMessage: String?
@@ -19,7 +22,7 @@ struct LocationDetailView: View {
                 Text("Error: \(errorMessage)")
                     .foregroundColor(.red)
             } else {
-                LocationStationsView(locationId: locationId, userId: userId, locationName: locationName, accountName: accountName)
+                LocationStationsView(locationId: locationId, userId: userId, locationName: locationName, accountName: accountName, session: session, onLogout: onLogout)
             }
         }
         .navigationTitle("Stations – \(accountName)")
