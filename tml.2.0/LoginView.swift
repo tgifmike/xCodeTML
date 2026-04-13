@@ -12,6 +12,8 @@ struct LoginView: View {
     @State private var errorMessage: String?
     @State private var showErrorAlert = false
     @State private var attemptedEmail: String?
+    @State private var logoTapCount = 0
+    @State private var showDemoButton = false
 
     var body: some View {
 
@@ -25,6 +27,13 @@ struct LoginView: View {
                 .frame(width: 140, height: 140)
                 .clipShape(Circle())
                 .overlay(Circle().stroke(Color.white, lineWidth: 2))
+                .onTapGesture {
+                        logoTapCount += 1
+                        
+                        if logoTapCount >= 5 {
+                            showDemoButton = true
+                        }
+                    }
 
             Text("Welcome to The Manager Life")
                 .font(.title2)
@@ -83,6 +92,13 @@ struct LoginView: View {
                         lineWidth: 1
                     )
             )
+            
+            if showDemoButton {
+                
+                Button("Demo Mode") {
+                    loginDemoUser()
+                }
+            }
 
             Spacer()
 
@@ -379,5 +395,36 @@ extension LoginView {
     func finishLoading() {
 
         isLoading = false
+    }
+}
+
+//////////////////////////////////////////////////////////////
+// MARK: login demo user
+//////////////////////////////////////////////////////////////
+
+extension LoginView {
+    func loginDemoUser() {
+        
+        guard let url =
+                URL(string:
+                        "https://app-javabackend-5e1ae1d5056c.herokuapp.com/users/demo-login")
+        else { return }
+        
+        var request = URLRequest(url: url)
+        
+        request.httpMethod = "POST"
+        
+        URLSession.shared.dataTask(with: request) {
+            
+            data, response, error in
+            
+            guard let data = data else { return }
+            
+            DispatchQueue.main.async {
+                
+                handleSuccessfulLogin(data: data)
+            }
+            
+        }.resume()
     }
 }
