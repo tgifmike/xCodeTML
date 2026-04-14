@@ -123,37 +123,10 @@ struct AccountPickerView: View {
                     }
                     .toolbar {
                         ToolbarItem(placement: .topBarTrailing) {
-
-                            Menu {
-
-                                Button(role: .destructive) {
-                                    signOut()
-                                } label: {
-                                    Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
-                                }
-
-                            } label: {
-
-                                Group {
-
-                                    if let imageUrl = session.userImage,
-                                       let url = URL(string: imageUrl) {
-
-                                        AsyncImage(url: url) { image in
-                                            image.resizable()
-                                        } placeholder: {
-                                            ProgressView()
-                                        }
-
-                                    } else {
-
-                                        Image(systemName: "person.circle.fill")
-                                            .resizable()
-                                    }
-                                }
-                                .frame(width: 34, height: 34)
-                                .clipShape(Circle())
-                            }
+                            ProfileMenuView(
+                                session: session,
+                                onLogout: onLogout
+                            )
                         }
                     }
                     .task {
