@@ -93,12 +93,13 @@ struct LoginView: View {
                     )
             )
             
+            #if DEBUG || TESTFLIGHT
             if showDemoButton {
-                
                 Button("Demo Mode") {
                     loginDemoUser()
                 }
             }
+            #endif
 
             Spacer()
 

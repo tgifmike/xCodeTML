@@ -10,8 +10,7 @@ import GoogleSignIn
 
 struct UserProfileView: View {
 
-    let session: UserSession
-    let onLogout: () -> Void
+    @EnvironmentObject var sessionManager: SessionManager
 
     @State private var showDeleteAlert = false
     @State private var isDeleting = false
@@ -22,9 +21,9 @@ struct UserProfileView: View {
 
             Section("User Info") {
 
-                Text(session.userName)
+                Text(sessionManager.session?.userName ?? "Unknown")
 
-                Text(session.email)
+                Text(sessionManager.session?.email ?? "Unknown")
                     .foregroundColor(.secondary)
             }
 
@@ -36,11 +35,14 @@ struct UserProfileView: View {
 
                 } label: {
 
-                    Text("Delete Account")
+                    if isDeleting {
+                        ProgressView()
+                    } else {
+                        Text("Delete Account")
+                    }
                 }
-
+                .disabled(isDeleting)
             }
-
         }
         .navigationTitle("Profile")
         .alert("Delete Account?",
@@ -62,12 +64,16 @@ struct UserProfileView: View {
 
     private func deleteAccount() {
 
+        guard let userId = sessionManager.session?.userId else {
+            return
+        }
+
         isDeleting = true
 
         Task {
 
             await UserApi.shared.deleteUser(
-                userId: session.userId
+                userId: userId
             )
 
             await MainActor.run {
@@ -76,13 +82,11 @@ struct UserProfileView: View {
             }
         }
     }
-    
+
     private func signOutUserAfterDeletion() {
 
         GIDSignIn.sharedInstance.signOut()
-        
-        onLogout()
 
-        // navigate back to login screen
+        sessionManager.logout()
     }
 }
