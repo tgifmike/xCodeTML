@@ -10,23 +10,33 @@ import GoogleSignIn
 
 struct ProfileMenuView: View {
 
-    let session: UserSession
-    let onLogout: () -> Void
+    @EnvironmentObject var sessionManager: SessionManager
 
     var body: some View {
 
         Menu {
 
             NavigationLink {
-                UserProfileView(session: session, onLogout: onLogout)
+
+                if let session = sessionManager.session {
+
+                    UserProfileView()
+                }
+
             } label: {
-                Label("Profile", systemImage: "person.crop.circle")
+
+                Label("Profile",
+                      systemImage: "person.crop.circle")
             }
 
-            Button(role: .destructive) {
+            Button() {
+
                 signOut()
+
             } label: {
-                Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
+
+                Label("Sign Out",
+                      systemImage: "rectangle.portrait.and.arrow.right")
             }
 
         } label: {
@@ -39,28 +49,30 @@ struct ProfileMenuView: View {
 
     private var profileImage: some View {
 
-        Group {
+        if let imageUrl = sessionManager.session?.userImage,
+           let url = URL(string: imageUrl) {
 
-            if let imageUrl = session.userImage,
-               let url = URL(string: imageUrl) {
-
+            return AnyView(
                 AsyncImage(url: url) { image in
                     image.resizable()
                 } placeholder: {
                     ProgressView()
                 }
+            )
 
-            } else {
+        } else {
 
+            return AnyView(
                 Image(systemName: "person.circle.fill")
                     .resizable()
-            }
+            )
         }
     }
 
     private func signOut() {
 
         GIDSignIn.sharedInstance.signOut()
-        onLogout()
+
+        sessionManager.logout()
     }
 }

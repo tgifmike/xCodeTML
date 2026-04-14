@@ -2,134 +2,196 @@ import SwiftUI
 import GoogleSignIn
 
 struct AccountDetailView: View {
+
+    @EnvironmentObject var sessionManager: SessionManager
+
+//    let accountId: String
+//    let accountName: String
     
-    let session: UserSession 
-    
-    let accountId: String
-    let accountName: String
-    let userId: String
-    let onLogout: () -> Void
-    
-    @Environment(\.dismiss) private var dismiss
-    
+    let account: Account
+
     @State private var locations: [Location] = []
     @State private var isLoading = false
-    
+    @State private var hasLoaded = false
+    @State private var showInactive = false
+
     var body: some View {
-        NavigationStack{
-            VStack(alignment: .leading) {
-                
-                if isLoading {
-                    ProgressView()
-                        .padding()
-                }
-                
-                if locations.isEmpty && !isLoading {
-                    Text("No locations are set up for this account.\nPlease configure them on the website.")
-                        .foregroundColor(.red)
-                        .multilineTextAlignment(.center)
-                        .padding()
-                } else {
-                    
-                    Text("Locations for \(accountName)")
-                        .font(.title)
-                        .padding(.horizontal)
-                        .foregroundStyle(Color(Color.blue))
-                    
-                    Text("Select your location:")
-                        .font(.headline)
-                        .padding(.horizontal)
-                    
-                    List(locations, id: \.id) { location in
-                        NavigationLink(
-                            destination: LocationDetailView(
-                                locationId: location.id,
-                                userId: userId,
-                                accountName: accountName,
-                                locationName: location.name,
-                                session: session,
-                                onLogout: onLogout
-                            )
-                        ) {
-                            HStack {
-                                Text(location.name)
-                                Spacer()
-                                
-                                if location.active {
-                                    Text("Active")
-                                        .foregroundColor(.green)
-                                        .font(.caption)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-           // .navigationTitle("Locations for \(accountName)")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-
-                    Menu {
-
-                        Button(role: .destructive) {
-                            signOut()
-                        } label: {
-                            Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
-                        }
-
-                    } label: {
-
-                        Group {
-
-                            if let imageUrl = session.userImage,
-                               let url = URL(string: imageUrl) {
-
-                                AsyncImage(url: url) { image in
-                                    image.resizable()
-                                } placeholder: {
-                                    ProgressView()
-                                }
-
-                            } else {
-
-                                Image(systemName: "person.circle.fill")
-                                    .resizable()
-                            }
-                        }
-                        .frame(width: 34, height: 34)
-                        .clipShape(Circle())
-                    }
-                }
-            }
+        content
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .topBarTrailing) { ProfileMenuView() .environmentObject(sessionManager) } }
             .task {
                 await loadLocations()
             }
+    }
+}
+private extension AccountDetailView {
+
+    @ViewBuilder
+    var content: some View {
+
+        VStack(alignment: .leading, spacing: 16) {
+
+            header
+
+            if isLoading {
+                ProgressView("Loading locations...")
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.top, 30)
+            }
+
+            else if hasLoaded && locations.isEmpty {
+                emptyState
+            }
+
+            else {
+                locationList
+            }
+
+            Spacer()
+        }
+        .padding()
+    }
+}
+private extension AccountDetailView {
+
+    var header: some View {
+
+        VStack(alignment: .leading, spacing: 12) {
+
+            HStack {
+                Spacer()
+                accountImage
+                Spacer()
+            }
+            .padding(.top, 8)
+
+            Text("Locations")
+                .font(.title.bold())
+            
+            Text("Account: \(account.name)")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            Toggle(isOn: $showInactive) {
+                Text("Show Inactive Locations")
+                    .font(.subheadline)
+            }
+            .padding(.top, 4)
         }
     }
-    
-    private func loadLocations() async {
-        isLoading = true
-          
-          //print("🔎 Loading locations for accountId:", accountId)
-          
-          locations = await LocationApi.shared.getLocationsForAccount(accountId: accountId)
+
+    var accountImage: some View {
         
-//        do {
-//          //  locations = try await LocationApi.getLocationsForUser(userId: userId)
-//            locations = try await LocationApi.getLocationForAccount(accountId: accountId)
-//        } catch {
-//            print("❌ Failed loading locations:", error)
-//            locations = []
-//        }
-          
-          print("📦 Locations returned:", locations.count)
-          
-          isLoading = false
+        Group {
+            
+            if let base64 = account.imageBase64,
+               let data = Data(base64Encoded: base64),
+               let uiImage = UIImage(data: data) {
+                
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                
+                Image(systemName: "building.2.crop.circle")
+                    .resizable()
+                    .foregroundStyle(.gray)
+            }
+        }
+        .frame(width: 100, height: 100)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
-    
-    private func signOut() {
-        GIDSignIn.sharedInstance.signOut()
-        onLogout()
+}
+private extension AccountDetailView {
+
+    var emptyState: some View {
+
+        VStack(spacing: 8) {
+
+            Image(systemName: "location.slash")
+                .font(.system(size: 28))
+                .foregroundStyle(.gray)
+
+            Text("No locations available")
+                .font(.headline)
+
+            Text("Please configure locations on the web dashboard.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 40)
     }
 }
 
+private extension AccountDetailView {
+
+    var locationList: some View {
+
+        List(filteredLocations) { location in
+
+            NavigationLink {
+
+                LocationDetailView(
+                    locationId: location.id,
+                    account: account,
+                    locationName: location.name
+                )
+
+            } label: {
+
+                HStack(spacing: 12) {
+
+                    VStack(alignment: .leading, spacing: 2) {
+
+                        Text(location.name)
+                            .font(.body.weight(.medium))
+
+                        Text(location.active ? "Active" : "Inactive")
+                            .font(.caption)
+                            .foregroundStyle(location.active ? .green : .secondary)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 6)
+            }
+        }
+        .listStyle(.plain)
+    }
+}
+
+private extension AccountDetailView {
+
+    func loadLocations() async {
+
+        isLoading = true
+        hasLoaded = false
+
+        defer {
+            isLoading = false
+            hasLoaded = true
+        }
+
+        locations = await LocationApi.shared.getLocationsForAccount(
+            accountId: account.id
+        )
+    }
+}
+
+private extension AccountDetailView {
+
+    var filteredLocations: [Location] {
+        if showInactive {
+            return locations
+        } else {
+            return locations.filter { $0.active }
+        }
+    }
+}
