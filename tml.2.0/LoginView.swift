@@ -32,6 +32,7 @@ struct LoginView: View {
                         
                         if logoTapCount >= 5 {
                             showDemoButton = true
+                            logoTapCount = 0
                         }
                     }
 
@@ -93,13 +94,11 @@ struct LoginView: View {
                     )
             )
             
-            #if DEBUG || TESTFLIGHT
-            if showDemoButton {
+            if allowDemoMode && showDemoButton {
                 Button("Demo Mode") {
                     loginDemoUser()
                 }
             }
-            #endif
 
             Spacer()
 
@@ -117,6 +116,13 @@ struct LoginView: View {
 
             Text(errorMessage ?? "Unknown error")
         }
+    }
+    private var allowDemoMode: Bool {
+    #if DEBUG
+        return true
+    #else
+        return Bundle.main.appStoreReceiptURL?.lastPathComponent == "sandboxReceipt"
+    #endif
     }
 }
 
@@ -405,27 +411,28 @@ extension LoginView {
 
 extension LoginView {
     func loginDemoUser() {
-        
+
+        guard allowDemoMode else { return }
+
         guard let url =
-                URL(string:
-                        "https://app-javabackend-5e1ae1d5056c.herokuapp.com/users/demo-login")
+            URL(string:
+                "https://app-javabackend-5e1ae1d5056c.herokuapp.com/users/demo-login")
         else { return }
-        
+
         var request = URLRequest(url: url)
-        
+
         request.httpMethod = "POST"
-        
+
         URLSession.shared.dataTask(with: request) {
-            
-            data, response, error in
-            
-            guard let data = data else { return }
-            
+
+            data, _, _ in
+
+            guard let data else { return }
+
             DispatchQueue.main.async {
-                
+
                 handleSuccessfulLogin(data: data)
             }
-            
+
         }.resume()
-    }
-}
+    }}
