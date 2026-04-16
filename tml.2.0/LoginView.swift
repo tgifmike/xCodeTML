@@ -94,7 +94,7 @@ struct LoginView: View {
                     )
             )
             
-            if allowDemoMode && showDemoButton {
+            if allowDemoMode {
                 Button("Demo Mode") {
                     loginDemoUser()
                 }
@@ -117,11 +117,23 @@ struct LoginView: View {
             Text(errorMessage ?? "Unknown error")
         }
     }
+    
     private var allowDemoMode: Bool {
+
     #if DEBUG
         return true
     #else
-        return Bundle.main.appStoreReceiptURL?.lastPathComponent == "sandboxReceipt"
+
+        if ProcessInfo.processInfo.environment["SIMULATOR_DEVICE_NAME"] != nil {
+            return true
+        }
+
+        guard let receiptURL = Bundle.main.appStoreReceiptURL else {
+            return true
+        }
+
+        return receiptURL.lastPathComponent != "appStoreReceipt"
+
     #endif
     }
 }
