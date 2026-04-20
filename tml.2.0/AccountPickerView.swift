@@ -119,57 +119,83 @@ private extension AccountPickerView {
     }
 }
 
+//private extension AccountPickerView {
+//
+//    var accountList: some View {
+//
+//        List(accounts) { account in
+//
+//            NavigationLink {
+//
+//                AccountDetailView(
+//                    account: account
+//                )
+//
+//            } label: {
+//
+//                HStack(spacing: 12) {
+//
+//                    accountImage(account)
+//
+//                    Text(account.name)
+//                        .font(.body)
+//
+//                    Spacer()
+//                }
+//                .padding(.vertical, 6)
+//            }
+//        }
+//        .listStyle(.plain)
+//    }
+//
+//    func accountImage(_ account: Account) -> some View {
+//
+//        Group {
+//            if let base64 = account.imageBase64,
+//               let data = Data(base64Encoded: base64),
+//               let uiImage = UIImage(data: data) {
+//
+//                Image(uiImage: uiImage)
+//                    .resizable()
+//                    .scaledToFill()
+//
+//            } else {
+//                RoundedRectangle(cornerRadius: 8)
+//                    .fill(Color.gray.opacity(0.3))
+//                    .overlay(
+//                        Image(systemName: "building.2")
+//                            .foregroundStyle(.gray)
+//                    )
+//            }
+//        }
+//        .frame(width: 40, height: 40)
+//        .clipShape(RoundedRectangle(cornerRadius: 8))
+//    }
+//}
+
 private extension AccountPickerView {
 
     var accountList: some View {
 
-        List(accounts) { account in
+        ScrollView {
 
-            NavigationLink {
+            LazyVStack(spacing: 12) {
 
-                AccountDetailView(
-                    account: account
-                )
+                ForEach(accounts) { account in
 
-            } label: {
+                    NavigationLink {
 
-                HStack(spacing: 12) {
+                        AccountDetailView(account: account)
 
-                    accountImage(account)
+                    } label: {
 
-                    Text(account.name)
-                        .font(.body)
-
-                    Spacer()
+                        AccountCard(account: account)
+                    }
+                    .buttonStyle(.plain)
                 }
-                .padding(.vertical, 6)
             }
+            .padding(.top, 8)
         }
-        .listStyle(.plain)
-    }
-
-    func accountImage(_ account: Account) -> some View {
-
-        Group {
-            if let base64 = account.imageBase64,
-               let data = Data(base64Encoded: base64),
-               let uiImage = UIImage(data: data) {
-
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .scaledToFill()
-
-            } else {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.gray.opacity(0.3))
-                    .overlay(
-                        Image(systemName: "building.2")
-                            .foregroundStyle(.gray)
-                    )
-            }
-        }
-        .frame(width: 40, height: 40)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }
 
@@ -195,5 +221,65 @@ private extension AccountPickerView {
 
         isLoading = false
         hasLoaded = true
+    }
+}
+
+private struct AccountCard: View {
+
+    let account: Account
+
+    var body: some View {
+
+        HStack(spacing: 14) {
+
+            accountImage
+
+            VStack(alignment: .leading, spacing: 4) {
+
+                Text(account.name)
+                    .font(.headline)
+
+//                Text("Account")
+//                    .font(.caption)
+//                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Image(systemName: "arrow.right")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.tertiary)
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color(.systemBackground))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Color.black.opacity(0.06), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.04), radius: 6, x: 0, y: 3)
+    }
+
+    private var accountImage: some View {
+
+        Group {
+            if let base64 = account.imageBase64,
+               let data = Data(base64Encoded: base64),
+               let uiImage = UIImage(data: data) {
+
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFill()
+
+            } else {
+                Image(systemName: "building.2.crop.circle")
+                    .resizable()
+                    .foregroundStyle(.gray)
+            }
+        }
+        .frame(width: 40, height: 40)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }

@@ -95,9 +95,22 @@ struct LoginView: View {
             )
             
             if allowDemoMode {
-                Button("Demo Mode") {
-                    loginDemoUser()
+                
+                Button(action: loginDemoUser) {
+
+                    Text("Demo Mode")
+                        .font(.headline)
+                        .frame(maxWidth: 250)
+                        .frame(height: 56)
+                        .background(Color.blue.opacity(0.15))
+                        .foregroundColor(.blue)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 26)
+                                .stroke(Color.blue, lineWidth: 1)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 26))
                 }
+                .buttonStyle(.plain)
             }
 
             Spacer()

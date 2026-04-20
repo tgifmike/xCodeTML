@@ -16,6 +16,7 @@ struct LineCheckDetailView: View {
     @State private var saveError: String?
     @State private var saveSuccess = false
     @State private var originalStations: [LineCheckStationInput] = []
+    @State private var completionMode: LineCheckCompletionMode = .requireAllItemsCompleted
     
     @FocusState private var focusedField: LineCheckField?
     @Environment(\.dismiss) private var dismiss
@@ -84,9 +85,20 @@ struct LineCheckDetailView: View {
             .navigationBarTitleDisplayMode(.inline)
         }
         .task { await loadLineCheck() }
-        .alert("Save Failed", isPresented: Binding(get: { saveError != nil }, set: { _ in saveError = nil })) {
-            Button("OK", role: .cancel) {}
-        } message: { Text(saveError ?? "") }
+//        .alert("Save Failed", isPresented: Binding(get: { saveError != nil }, set: { _ in saveError = nil })) {
+//            Button("OK", role: .cancel) {}
+//        } message: { Text(saveError ?? "") }
+        .overlay {
+            if let saveError {
+                CustomAlertView(
+                    title: "Save Failed",
+                    message: saveError,
+                    buttonTitle: "OK"
+                ) {
+                    self.saveError = nil
+                }
+            }
+        }
         .alert("Success", isPresented: $saveSuccess) {
             Button("OK", role: .cancel) {}
         } message: { Text("Line Check saved successfully.") }
@@ -165,20 +177,35 @@ struct LineCheckDetailView: View {
     
     // MARK: Save Button
     private var saveButton: some View {
-        Button {
-            Task { await saveLineCheck() }
-        } label: {
-            if isSaving {
-                ProgressView()
-                    .frame(maxWidth: .infinity)
-            } else {
-                Text("Save Line Check")
-                    .frame(maxWidth: .infinity)
-                    .font(.headline.bold())
+
+        VStack(spacing: 12) {
+
+//            if let saveError {
+//                Text(saveError)
+//                    .multilineTextAlignment(.center)
+//                    .foregroundColor(.red)
+//                    .font(.headline)
+//                    .frame(maxWidth: .infinity)
+//                    .padding(8)
+//                    .background(Color.red.opacity(0.1))
+//                    .cornerRadius(10)
+//            }
+
+            Button {
+                Task { await saveLineCheck() }
+            } label: {
+                if isSaving {
+                    ProgressView()
+                        .frame(maxWidth: .infinity)
+                } else {
+                    Text("Save Line Check")
+                        .frame(maxWidth: .infinity)
+                        .font(.headline.bold())
+                }
             }
+            .buttonStyle(.borderedProminent)
+            .disabled(isSaving || !hasChanges)
         }
-        .buttonStyle(.borderedProminent)
-        .disabled(isSaving || !hasChanges)
     }
     
     // MARK: Load Line Check
@@ -217,14 +244,44 @@ struct LineCheckDetailView: View {
     
     // MARK: Save Line Check
     private func saveLineCheck() async {
-        let requiredItems = stations
+//        let requiredItems = stations
+//            .flatMap { $0.items }
+//            .filter { $0.item.checkMark && !$0.isMissing && !$0.item.tempTaken }
+        
+        let incompleteItems = stations
             .flatMap { $0.items }
-            .filter { $0.item.checkMark && !$0.isMissing && !$0.item.tempTaken }
+            .filter { item in
 
-        guard requiredItems.allSatisfy({ $0.isChecked != nil }) else {
-            saveError = "All item need to be temped, checked or marked missing."
+                if item.isMissing {
+                    return false
+                }
+
+                if item.item.tempTaken {
+                    return item.temperature.isEmpty
+                }
+
+                if item.item.checkMark {
+                    return item.isChecked == nil
+                }
+
+                return false
+            }
+
+//        guard requiredItems.allSatisfy({ $0.isChecked != nil }) else {
+//            saveError = "All item need to be temped, checked or marked missing."
+//            return
+//        }
+        
+     
+        
+        if completionMode == .requireAllItemsCompleted && !incompleteItems.isEmpty {
+            saveError = """
+            All items must be temped, checked, or marked missing.
+            \(incompleteItems.count) items still need completion.
+            """
             return
         }
+        
         guard var currentLineCheck = lineCheck else { return }
         isSaving = true
         saveError = nil
