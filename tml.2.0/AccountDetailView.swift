@@ -126,44 +126,32 @@ private extension AccountDetailView {
     }
 }
 
+
 private extension AccountDetailView {
 
     var locationList: some View {
 
-        List(filteredLocations) { location in
+        ScrollView {
 
-            NavigationLink {
+            LazyVStack(spacing: 12) {
 
-                LocationDetailView(
-                    locationId: location.id,
-                    account: account,
-                    locationName: location.name
-                )
+                ForEach(filteredLocations) { location in
 
-            } label: {
+                    NavigationLink {
+                        LocationDetailView(
+                            locationId: location.id,
+                            account: account,
+                            locationName: location.name
+                        )
+                    } label: {
 
-                HStack(spacing: 12) {
-
-                    VStack(alignment: .leading, spacing: 2) {
-
-                        Text(location.name)
-                            .font(.body.weight(.medium))
-
-                        Text(location.active ? "Active" : "Inactive")
-                            .font(.caption)
-                            .foregroundStyle(location.active ? .green : .secondary)
+                        LocationCard(location: location)
                     }
-
-                    Spacer()
-
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    .buttonStyle(.plain)
                 }
-                .padding(.vertical, 6)
             }
+            .padding(.top, 8)
         }
-        .listStyle(.plain)
     }
 }
 
@@ -193,5 +181,49 @@ private extension AccountDetailView {
         } else {
             return locations.filter { $0.active }
         }
+    }
+}
+
+private struct LocationCard: View {
+
+    let location: Location
+
+    var body: some View {
+
+        HStack(spacing: 14) {
+
+            // Left status indicator
+            Circle()
+                .fill(location.active ? .green : .gray.opacity(0.4))
+                .frame(width: 10, height: 10)
+
+            // Content
+            VStack(alignment: .leading, spacing: 4) {
+
+                Text(location.name)
+                    .font(.headline)
+
+//                Text(location.active ? "Active" : "Inactive")
+//                    .font(.caption)
+//                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            // Optional subtle indicator (NOT system chevron)
+            Image(systemName: "arrow.right")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.tertiary)
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color(.systemBackground))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Color.black.opacity(0.06), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.04), radius: 6, x: 0, y: 3)
     }
 }
