@@ -12,6 +12,7 @@ import GoogleSignIn
 struct tml_2_0App: App {
 
     @StateObject private var sessionManager = SessionManager()
+    @StateObject private var appSettings = AppSettings()
 
     init() {
 
@@ -41,5 +42,6 @@ struct tml_2_0App: App {
             
         }
         .environmentObject(sessionManager)
+        .environmentObject(appSettings)
     }
 }
