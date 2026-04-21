@@ -16,7 +16,7 @@ struct LineCheckDetailView: View {
     @State private var saveError: String?
     @State private var saveSuccess = false
     @State private var originalStations: [LineCheckStationInput] = []
-    @State private var completionMode: LineCheckCompletionMode = .requireAllItemsCompleted
+    @EnvironmentObject var appSettings: AppSettings
     
     @FocusState private var focusedField: LineCheckField?
     @Environment(\.dismiss) private var dismiss
@@ -274,7 +274,7 @@ struct LineCheckDetailView: View {
         
      
         
-        if completionMode == .requireAllItemsCompleted && !incompleteItems.isEmpty {
+        if appSettings.completionMode == .requireAllItemsCompleted && !incompleteItems.isEmpty {
             saveError = """
             All items must be temped, checked, or marked missing.
             \(incompleteItems.count) items still need completion.

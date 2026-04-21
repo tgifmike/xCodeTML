@@ -322,7 +322,7 @@ extension LoginView {
 
             case 200:
 
-                handleSuccessfulLogin(data: data)
+                handleSuccessfulLogin(data: data, provider: provider)
 
             case 403:
 
@@ -364,24 +364,22 @@ extension LoginView {
 
 extension LoginView {
 
-    func handleSuccessfulLogin(data: Data) {
+    func handleSuccessfulLogin(
+        data: Data,
+        provider: String
+    ) {
 
         print("RAW LOGIN RESPONSE:", String(data: data, encoding: .utf8) ?? "nil")
-        
+
         do {
 
             let json =
                 try JSONSerialization.jsonObject(with: data)
                 as? [String: Any]
 
-            guard let token =
-                    json?["token"] as? String,
-
-                  let userId =
-                    json?["userId"] as? String,
-
-                  let email =
-                    json?["email"] as? String else {
+            guard let token = json?["token"] as? String,
+                  let userId = json?["userId"] as? String,
+                  let email = json?["email"] as? String else {
 
                 DispatchQueue.main.async {
                     showError("Invalid backend response.")
@@ -396,7 +394,8 @@ extension LoginView {
                 email: email,
                 userImage: json?["userImage"] as? String,
                 appRole: json?["appRole"] as? String ?? "MEMBER",
-                accessRole: json?["accessRole"] as? String ?? "USER"
+                accessRole: json?["accessRole"] as? String ?? "USER",
+                authProvider: AuthProvider(rawValue: provider) ?? .demo
             )
 
             DispatchQueue.main.async {
@@ -456,7 +455,7 @@ extension LoginView {
 
             DispatchQueue.main.async {
 
-                handleSuccessfulLogin(data: data)
+                handleSuccessfulLogin(data: data, provider: "demo")
             }
 
         }.resume()

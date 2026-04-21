@@ -28,6 +28,18 @@ struct ProfileMenuView: View {
                 Label("Profile",
                       systemImage: "person.crop.circle")
             }
+            
+            NavigationLink {
+
+                SettingsView()
+
+            } label: {
+
+                Label(
+                    "Settings",
+                    systemImage: "gearshape"
+                )
+            }
 
             Button() {
 

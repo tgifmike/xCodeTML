@@ -12,6 +12,11 @@ import Combine
 class SessionManager: ObservableObject {
 
     @Published var session: UserSession? = nil
+    
+    var canEditCompletionMode: Bool {
+        session?.accessRole == "MANAGER"
+        || session?.accessRole == "ADMIN"
+    }
 
     func logout() {
         session = nil

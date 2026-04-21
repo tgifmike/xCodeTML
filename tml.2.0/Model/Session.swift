@@ -6,4 +6,5 @@ struct UserSession {
     let userImage: String?
     let appRole: String
     let accessRole: String
+    let authProvider: AuthProvider
 }
