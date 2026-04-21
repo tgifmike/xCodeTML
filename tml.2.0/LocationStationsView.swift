@@ -61,7 +61,7 @@ private extension LocationStationsView {
                     .padding(.top, 20)
             }
 
-            else if let errorMessage {
+            else if errorMessage != nil {
                 errorView
             }
 

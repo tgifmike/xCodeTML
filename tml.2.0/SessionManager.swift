@@ -14,8 +14,7 @@ class SessionManager: ObservableObject {
     @Published var session: UserSession? = nil
     
     var canEditCompletionMode: Bool {
-        session?.appRole == "MANAGER"
-        || session?.appRole == "ADMIN"
+        ["MANAGER", "ADMIN"].contains(session?.appRole ?? "")
     }
 
     func logout() {

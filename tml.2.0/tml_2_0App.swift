@@ -29,7 +29,7 @@ struct tml_2_0App: App {
         
         WindowGroup {
             
-            if let session = sessionManager.session {
+            if sessionManager.session != nil {
                 
                 AccountPickerView()
                 
