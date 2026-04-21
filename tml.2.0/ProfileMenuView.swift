@@ -18,7 +18,7 @@ struct ProfileMenuView: View {
 
             NavigationLink {
 
-                if let session = sessionManager.session {
+                if sessionManager.session != nil {
 
                     UserProfileView()
                 }

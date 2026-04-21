@@ -212,12 +212,7 @@ private extension AccountPickerView {
         isLoading = true
         hasLoaded = false
 
-        do {
-            accounts = try await AccountApi.shared.getAccountsForUser(userId: userId)
-        } catch {
-            accounts = []
-            print("Failed loading accounts:", error)
-        }
+        accounts = await AccountApi.shared.getAccountsForUser(userId: userId)
 
         isLoading = false
         hasLoaded = true
