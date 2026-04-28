@@ -119,60 +119,6 @@ private extension AccountPickerView {
     }
 }
 
-//private extension AccountPickerView {
-//
-//    var accountList: some View {
-//
-//        List(accounts) { account in
-//
-//            NavigationLink {
-//
-//                AccountDetailView(
-//                    account: account
-//                )
-//
-//            } label: {
-//
-//                HStack(spacing: 12) {
-//
-//                    accountImage(account)
-//
-//                    Text(account.name)
-//                        .font(.body)
-//
-//                    Spacer()
-//                }
-//                .padding(.vertical, 6)
-//            }
-//        }
-//        .listStyle(.plain)
-//    }
-//
-//    func accountImage(_ account: Account) -> some View {
-//
-//        Group {
-//            if let base64 = account.imageBase64,
-//               let data = Data(base64Encoded: base64),
-//               let uiImage = UIImage(data: data) {
-//
-//                Image(uiImage: uiImage)
-//                    .resizable()
-//                    .scaledToFill()
-//
-//            } else {
-//                RoundedRectangle(cornerRadius: 8)
-//                    .fill(Color.gray.opacity(0.3))
-//                    .overlay(
-//                        Image(systemName: "building.2")
-//                            .foregroundStyle(.gray)
-//                    )
-//            }
-//        }
-//        .frame(width: 40, height: 40)
-//        .clipShape(RoundedRectangle(cornerRadius: 8))
-//    }
-//}
-
 private extension AccountPickerView {
 
     var accountList: some View {
@@ -203,16 +149,25 @@ private extension AccountPickerView {
 
     func loadAccounts() async {
 
+        
+        
         guard let userId = sessionManager.session?.userId else {
             accounts = []
             hasLoaded = true
             return
         }
 
+        print("👤 USER ID:", userId)
+        
         isLoading = true
         hasLoaded = false
 
-        accounts = await AccountApi.shared.getAccountsForUser(userId: userId)
+        do {
+            accounts = try await AccountApi.shared.getAccountsForUser(userId: userId)
+        } catch {
+            print("❌ Accounts error:", error)
+            accounts = []
+        }
 
         isLoading = false
         hasLoaded = true
@@ -234,9 +189,6 @@ private struct AccountCard: View {
                 Text(account.name)
                     .font(.headline)
 
-//                Text("Account")
-//                    .font(.caption)
-//                    .foregroundStyle(.secondary)
             }
 
             Spacer()

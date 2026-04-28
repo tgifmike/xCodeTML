@@ -208,13 +208,20 @@ private extension UserProfileView {
 
         Task {
 
-            await UserApi.shared.deleteUser(
-                userId: userId
-            )
+            do {
+                try await UserApi.shared.deleteUser(userId: userId)
 
-            await MainActor.run {
+                await MainActor.run {
+                    signOutUserAfterDeletion()
+                    isDeleting = false
+                }
 
-                signOutUserAfterDeletion()
+            } catch {
+
+                await MainActor.run {
+                    isDeleting = false
+                    print("❌ Delete failed:", error.localizedDescription)
+                }
             }
         }
     }
