@@ -169,27 +169,6 @@ private extension LocationStationsView {
     }
 }
 
-//private extension LocationStationsView {
-//
-//    var actionRow: some View {
-//
-//        HStack {
-//
-//            Button("Select All") {
-//                selectedStations = Set(stations.map(\.id))
-//            }
-//
-//            Spacer()
-//
-//            Button("Clear") {
-//                selectedStations.removeAll()
-//            }
-//        }
-//        .font(.subheadline)
-//        .foregroundStyle(.blue)
-//    }
-//}
-
 private extension LocationStationsView {
 
     var actionRow: some View {
@@ -201,46 +180,17 @@ private extension LocationStationsView {
 
             Spacer()
 
-//            Menu {
 
                 Button("Select All") {
                     selectedStations = Set(stations.map(\.id))
                 }
 
-//                Button("Clear Selection", role: .destructive) {
-//                    selectedStations.removeAll()
-//                }
-
-//            } label: {
-//                Image(systemName: "ellipsis.circle")
-//                    .font(.title3)
-//            }
         }
         .padding(.horizontal, 4)
     }
 }
 
-//private extension LocationStationsView {
-//
-//    var stationList: some View {
-//
-//        ScrollView(.horizontal, showsIndicators: false) {
-//
-//            HStack(spacing: 12) {
-//
-//                ForEach(stations) { station in
-//
-//                    StationChip(
-//                        title: station.stationName,
-//                        isSelected: selectedStations.contains(station.id)
-//                    ) {
-//                        toggleSelection(station.id)
-//                    }
-//                }
-//            }
-//        }
-//    }
-//}
+
 
 private extension LocationStationsView {
 
@@ -310,16 +260,6 @@ struct StationCard: View {
     }
 }
 
-//private extension LocationStationsView {
-//
-//    var footer: some View {
-//
-//        Text("\(selectedStations.count) selected")
-//            .font(.caption)
-//            .foregroundStyle(.secondary)
-//    }
-//}
-
 private extension LocationStationsView {
 
     var footer: some View {
@@ -381,7 +321,7 @@ private extension LocationStationsView {
         errorMessage = nil
 
         do {
-            stations = try await StationApi.getStationsByLocation(
+            stations = try await StationApi.shared.getStationsByLocation(
                 locationId: locationId
             )
         } catch {
@@ -406,7 +346,7 @@ private extension LocationStationsView {
         errorMessage = nil
 
         do {
-            let response = try await LineCheckApi.createLineCheck(
+            let response = try await LineCheckApi.shared.createLineCheck(
                 userId: sessionManager.session?.userId ?? "",
                 stationIds: Array(selectedStations)
             )

@@ -213,7 +213,7 @@ struct LineCheckDetailView: View {
         isLoading = true
         error = nil
         do {
-            let response = try await LineCheckApi.getLineCheckById(lineCheckId: lineCheckId)
+            let response = try await LineCheckApi.shared.getLineCheckById(lineCheckId: lineCheckId)
             lineCheck = response
             
             stations = response.stations.map { stationDto in
@@ -313,7 +313,7 @@ struct LineCheckDetailView: View {
                     }
                 )
             }
-            _ = try await LineCheckApi.saveLineCheck(currentLineCheck)
+            _ = try await LineCheckApi.shared.saveLineCheck(currentLineCheck)
             saveSuccess = true
             dismiss()
         } catch {

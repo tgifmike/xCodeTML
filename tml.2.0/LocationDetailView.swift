@@ -50,13 +50,15 @@ struct LocationDetailView: View {
         }
 
         do {
-            let locations = try await LocationApi.getLocationsForUser(
-                userId: sessionManager.session?.userId ?? ""
-            )
-
-            if !locations.contains(where: { $0.id == locationId }) {
-                errorMessage = "Location not found"
+            guard let userId = sessionManager.session?.userId,
+                  let token = sessionManager.session?.jwt else {
+                errorMessage = "Missing session"
+                return
             }
+
+            let locations = try await LocationApi.shared.getLocationsForUser(
+                userId: userId
+            )
 
         } catch {
             errorMessage = error.localizedDescription

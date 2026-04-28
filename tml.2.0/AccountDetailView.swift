@@ -167,9 +167,14 @@ private extension AccountDetailView {
             hasLoaded = true
         }
 
-        locations = await LocationApi.shared.getLocationsForAccount(
-            accountId: account.id
-        )
+        do {
+            locations = try await LocationApi.shared.getLocationsForAccount(
+                accountId: account.id
+            )
+        } catch {
+            print("❌ Failed to load locations:", error)
+            locations = []
+        }
     }
 }
 
@@ -203,9 +208,6 @@ private struct LocationCard: View {
                 Text(location.name)
                     .font(.headline)
 
-//                Text(location.active ? "Active" : "Inactive")
-//                    .font(.caption)
-//                    .foregroundStyle(.secondary)
             }
 
             Spacer()

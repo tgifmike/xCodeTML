@@ -290,7 +290,7 @@ extension LoginView {
             data, response, error in
 
             DispatchQueue.main.async {
-
+                
                 finishLoading()
             }
 
@@ -399,6 +399,7 @@ extension LoginView {
             )
 
             DispatchQueue.main.async {
+                APIClient.shared.jwt = session.jwt
                 onLoginSuccess(session)
             }
 
