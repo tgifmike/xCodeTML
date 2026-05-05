@@ -7,6 +7,7 @@ struct LocationDetailView: View {
     let locationName: String
 
     @EnvironmentObject var sessionManager: SessionManager
+    @State private var expandedSection: Int? = 0
 
     @State private var isLoading = true
     @State private var errorMessage: String?
