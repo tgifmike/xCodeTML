@@ -20,6 +20,7 @@ struct LineCheckDetailView: View {
     
     @FocusState private var focusedField: LineCheckField?
     @Environment(\.dismiss) private var dismiss
+    @State private var expandedSection: Int? = 0
     
     private var hasChanges: Bool { stations != originalStations }
     
@@ -57,10 +58,13 @@ struct LineCheckDetailView: View {
                                     locationName: locationName
                                 )
 
-                                ForEach($stations) { $station in
+                                ForEach(Array($stations.enumerated()), id: \.element.id) { index, $station in
+                                    
                                     LineCheckStationSection(
                                         stationName: station.stationName,
+                                        sectionIndex: index,
                                         items: $station.items,
+                                        expandedSection: $expandedSection,
                                         focusedField: $focusedField
                                     )
                                 }
