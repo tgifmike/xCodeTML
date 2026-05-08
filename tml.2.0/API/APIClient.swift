@@ -49,7 +49,11 @@ final class APIClient {
 
         switch http.statusCode {
         case 200...299:
-            return try JSONDecoder().decode(T.self, from: data)
+            let decoder = JSONDecoder()
+            decoder.keyDecodingStrategy = .convertFromSnakeCase
+            decoder.dateDecodingStrategy = .iso8601
+
+            return try decoder.decode(T.self, from: data)
 
         case 401:
             throw APIError.unauthorized
