@@ -11,6 +11,5 @@ struct Account: Identifiable, Codable {
         case name = "accountName"
         case imageBase64
         case active = "accountActive"
-        
     }
 }
