@@ -60,7 +60,7 @@ struct LineCheckItemRow: View {
             missingToggle
         }
         .padding(12)
-        .background(Color(.systemGray6))
+//        .background(Color(.systemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
@@ -73,7 +73,8 @@ struct LineCheckItemRow: View {
 
             HStack(alignment: .top) {
 
-                Text("Temperature")
+//                Text("Temperature")
+                Label("Temerature", systemImage: "thermometer.variable")
                     .font(.subheadline)
                     .foregroundColor(.blue)
 
@@ -126,6 +127,7 @@ struct LineCheckItemRow: View {
                                 .foregroundColor(.blue)
                                 .clipShape(Capsule())
                         }
+                        .buttonStyle(.plain)
                     }
 
                     if case .invalid = validation,
@@ -150,7 +152,8 @@ struct LineCheckItemRow: View {
 
             HStack {
 
-                Text("Item Prepared Correctly?")
+//                Text("Item Prepared Correctly?")
+                Label("Item Prepared Correctly?", systemImage: "checklist")
                     .font(.subheadline)
                     .foregroundColor(.green)
 
@@ -181,7 +184,9 @@ struct LineCheckItemRow: View {
     private var missingToggle: some View {
 
         HStack {
-            Text("Item Missing?")
+            
+//            Text("Item Missing?")
+            Label("Item Missing?", systemImage: "nosign")
                 .font(.subheadline)
                 .foregroundColor(.red)
 
