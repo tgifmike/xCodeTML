@@ -1,120 +1,136 @@
-import Foundation
 import SwiftUI
 
 struct LineCheckStationSection: View {
-    
+
     let stationName: String
-    let sectionIndex: Int
-    
-    @Binding var items: [LineCheckItemInput]
-    @Binding var expandedSection: Int?
-    
+
+    @Binding var items: [LineCheckItemState]
+
     @FocusState.Binding var focusedField: LineCheckField?
     
-    // MARK: Metrics
     
+
+    @State private var isExpanded = true
+
+    // MARK: PROGRESS
+
+    private var completedItems: Int {
+
+        items.filter {
+            $0.isMissing ||
+            !$0.temperature.isEmpty ||
+            $0.isChecked != nil
+        }
+        .count
+    }
+
     private var totalItems: Int {
         items.count
     }
-    
-    private var completedItems: Int {
-        items.filter {
-            !$0.temperature.isEmpty ||
-            $0.isMissing ||
-            $0.isChecked != nil
-        }.count
-    }
-    
+
     private var progress: Double {
-        totalItems > 0 ? Double(completedItems) / Double(totalItems) : 0
+
+        guard totalItems > 0 else {
+            return 0
+        }
+
+        return Double(completedItems) / Double(totalItems)
     }
-    
-    private var percent: Int {
-        Int(progress * 100)
-    }
-    
+
     private var isComplete: Bool {
-        totalItems > 0 && completedItems == totalItems
+        completedItems == totalItems && totalItems > 0
     }
-    
-    private var isExpanded: Bool {
-        expandedSection == sectionIndex
-    }
-    
+
     private var progressColor: Color {
-        if isComplete { return .green }
-        if progress >= 0.7 { return .orange }
+
+        if progress >= 1 {
+            return .green
+        }
+
+        if progress > 0.7 {
+            return .orange
+        }
+
         return .red
     }
-    
-    // MARK: Body
-    
+
+    // MARK: BODY
+
     var body: some View {
-        
+
         VStack(spacing: 12) {
-            
-            header
-            
-            if isExpanded {
-                itemsSection
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-        }
-        .id(sectionIndex)
-        .onChange(of: isComplete) { _, newValue in
-            
-            guard newValue else { return }
-            
-            // Auto-open next section when completed
-            if expandedSection == sectionIndex {
-                withAnimation(.easeInOut) {
-                    expandedSection = sectionIndex + 1
+
+            stationHeader
+
+            VStack(spacing: 12) {
+
+                ForEach(items.indices, id: \.self) { index in
+
+                    LineCheckItemRow(
+                        item: $items[index],
+                        focusedField: $focusedField,
+                        onFinalizeAction: collapseIfComplete
+                    )
                 }
             }
+            .frame(maxHeight: isExpanded ? nil : 0)
+            .opacity(isExpanded ? 1 : 0)
+            .clipped()
         }
+        .animation(.easeInOut(duration: 0.22), value: isExpanded)
     }
-    
-    // MARK: Header
-    
-    private var header: some View {
-        
+
+    // MARK: HEADER
+
+    private var stationHeader: some View {
+
         Button {
-            withAnimation(.easeInOut(duration: 0.22)) {
-                expandedSection = isExpanded ? nil : sectionIndex
+
+            withAnimation {
+                isExpanded.toggle()
             }
+
         } label: {
-            
-            VStack(spacing: 10) {
-                
-                HStack(spacing: 12) {
-                    
-                    Image(systemName: isComplete ? "checkmark.circle.fill" : "fork.knife")
-                        .foregroundColor(isComplete ? .green : .blue)
-                    
+
+            VStack(alignment: .leading, spacing: 10) {
+
+                HStack(spacing: 8) {
+
+                    Label("Station:", systemImage: "fork.knife.circle")
+                        .foregroundColor(.secondary)
+
                     Text(stationName)
-                        .font(.title3.weight(.semibold))
-                    
+                        .font(.headline)
+
                     Spacer()
-                    
+
                     HStack(spacing: 8) {
-                        
+
                         Text("\(completedItems)/\(totalItems)")
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        
-                        Text("\(percent)%")
-                            .font(.caption.bold())
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(progressColor.opacity(0.15))
-                            .foregroundColor(progressColor)
-                            .clipShape(Capsule())
+
+                        Text(
+                            progress.formatted(
+                                .percent.precision(.fractionLength(0))
+                            )
+                        )
+                        .font(.caption.bold())
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(progressColor.opacity(0.10))
+                        .foregroundColor(progressColor)
+                        .clipShape(Capsule())
+
+                        Image(systemName:
+                                isExpanded
+                              ? "chevron.down.circle.fill"
+                              : "chevron.right.circle.fill"
+                        )
+                        .foregroundColor(.blue)
                     }
-                    
-                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                        .foregroundColor(.secondary)
                 }
-                
+
                 ProgressView(value: progress)
                     .tint(progressColor)
             }
@@ -126,25 +142,14 @@ struct LineCheckStationSection: View {
         .buttonStyle(.plain)
     }
     
-    // MARK: Items
-    
-    private var itemsSection: some View {
-        
-        VStack(spacing: 0) {
-            
-            ForEach(Array($items.enumerated()), id: \.element.id) { index, $item in
-                
-                LineCheckItemRow(
-                    input: $item,
-                    focusedField: $focusedField
-                )
-                
-                if index < items.count - 1 {
-                    Divider()
-                        .padding(.vertical, 12)
-                }
+    private func collapseIfComplete() {
+
+        if isComplete {
+
+            withAnimation(.easeInOut(duration: 0.22)) {
+                isExpanded = false
             }
         }
-        .padding(.horizontal, 4)
     }
 }
+

@@ -21,7 +21,7 @@ struct LoginView: View {
 
             Spacer()
 
-            Image("new_logo")
+            Image("new_tml_logo")
                 .resizable()
                 .scaledToFit()
                 .frame(width: 140, height: 140)

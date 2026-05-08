@@ -8,6 +8,7 @@ struct LocationDetailView: View {
 
     @EnvironmentObject var sessionManager: SessionManager
     @State private var expandedSection: Int? = 0
+    @StateObject private var vm = LineCheckDetailVM()
 
     @State private var isLoading = true
     @State private var errorMessage: String?
