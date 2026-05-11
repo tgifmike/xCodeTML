@@ -4,7 +4,19 @@ struct LineCheckItemRow: View {
 
     @Binding var item: LineCheckItemState
     @FocusState.Binding var focusedField: LineCheckField?
+
     let onFinalizeAction: () -> Void
+
+    @Environment(\.horizontalSizeClass)
+    private var horizontalSizeClass
+
+    // MARK: Validation
+
+    private enum TempValidation {
+        case empty
+        case valid
+        case invalid
+    }
 
     private var validation: TempValidation {
 
@@ -15,301 +27,593 @@ struct LineCheckItemRow: View {
             return .empty
         }
 
-        return (value >= min && value <= max) ? .valid : .invalid
+        return (value >= min && value <= max)
+        ? .valid
+        : .invalid
     }
 
-    private enum TempValidation {
-        case empty, valid, invalid
+    private var hasInvalidTemperature: Bool {
+        validation == .invalid
     }
 
-    private var borderColor: Color {
-        switch validation {
-        case .empty: return .gray.opacity(0.4)
-        case .valid: return .green
-        case .invalid: return .red
-        }
+    private var isPreparedIncorrectly: Bool {
+        item.isChecked == false
     }
+
+    // MARK: Body
 
     var body: some View {
 
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
 
-            Text(item.item.itemName ?? "-")
-                .font(.headline)
-                .foregroundColor(.blue)
+            headerSection
 
-            metadataSection
+            adaptiveTopSection
 
-            controlPanel
-
-            notesSection
+            if hasNotes {
+                notesSection
+            }
 
             observationsSection
         }
-        .padding(.vertical, 8)
+        .padding(18)
+        .background(
+            Color(.white)
+        )
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius: 24,
+                style: .continuous
+            )
+        )
+        .animation(
+            .easeInOut(duration: 0.2),
+            value: validation
+        )
+        .animation(
+            .easeInOut(duration: 0.2),
+            value: item.isChecked
+        )
+        .animation(
+            .easeInOut(duration: 0.2),
+            value: item.isMissing
+        )
     }
 
-    // MARK: CONTROL
+    // MARK: Header
 
-    private var controlPanel: some View {
+    private var headerSection: some View {
 
         VStack(alignment: .leading, spacing: 10) {
 
-            temperatureSection
-            preparedCorrectlySection
-            missingToggle
+            Text(item.item.itemName ?? "-")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(.primary)
+
+            VStack(alignment: .leading, spacing: 6) {
+
+                if item.isMissing {
+
+                    statusBadge(
+                        title: "Item Marked Missing",
+                        systemImage: "exclamationmark.circle.fill"
+                    )
+                }
+
+                if hasInvalidTemperature {
+
+                    statusBadge(
+                        title: "Temperature Out of Range",
+                        systemImage: "thermometer.medium"
+                    )
+                }
+
+                if isPreparedIncorrectly {
+
+                    statusBadge(
+                        title: "Item Not Prepared Correctly",
+                        systemImage: "xmark.shield.fill"
+                    )
+                }
+            }
         }
-        .padding(12)
-//        .background(Color(.systemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
-    // MARK: TEMPERATURE
+    // MARK: Adaptive Top Section
+
+    private var adaptiveTopSection: some View {
+
+        Group {
+
+            if horizontalSizeClass == .regular {
+
+                VStack(spacing: 18) {
+
+                    HStack(alignment: .top, spacing: 18) {
+
+                        detailsCard
+                            .frame(maxWidth: .infinity)
+
+                        compactValidationCard
+                            .frame(maxWidth: .infinity)
+                    }
+
+                    missingCard
+                }
+
+            } else {
+
+                VStack(spacing: 18) {
+
+                    detailsCard
+                    compactValidationCard
+                    missingToggle
+                }
+            }
+        }
+    }
+    // MARK: Details Card
+
+    private var detailsCard: some View {
+
+        VStack(alignment: .leading, spacing: 20) {
+
+            sectionHeader(
+                title: "Details",
+                systemImage: "info.circle"
+            )
+
+            VStack(spacing: 14) {
+
+                metadataRow(
+                    icon: "clock",
+                    label: "Shelf Life",
+                    value: item.item.shelfLife
+                )
+
+                metadataRow(
+                    icon: "square.grid.2x2",
+                    label: "Pan Size",
+                    value: item.item.panSize
+                )
+
+                metadataRow(
+                    icon: "wrench.and.screwdriver",
+                    label: "Tool",
+                    value: item.item.toolName
+                )
+
+                metadataRow(
+                    icon: "scalemass",
+                    label: "Portion Size",
+                    value: item.item.portionSize
+                )
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .padding(18)
+        .background(
+            Color(.secondarySystemBackground)
+        )
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius: 18,
+                style: .continuous
+            )
+        )
+    }
+
+    // MARK: Validation Card
+
+    private var compactValidationCard: some View {
+
+        VStack(alignment: .leading, spacing: 14) {
+
+            sectionHeader(
+                title: "Validation",
+                systemImage: "checkmark.shield"
+            )
+
+            if item.item.tempTaken {
+                temperatureSection
+            }
+
+            if item.item.checkMark {
+                preparedCorrectlySection
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .padding(16)
+        .background(Color(.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+    
+    //MARK: missing card
+    private var missingCard: some View {
+
+        VStack(alignment: .leading, spacing: 14) {
+
+            sectionHeader(
+                title: "Item Missing",
+                systemImage: "exclamationmark.triangle"
+            )
+
+            VStack(alignment: .leading, spacing: 12) {
+
+                Toggle("Mark Item Missing", isOn: $item.isMissing)
+                    .tint(.red)
+                    .onChange(of: item.isMissing) { _, newValue in
+
+                        if newValue {
+                            item.temperature = ""
+                            item.isChecked = nil
+                            item.observations = ""
+                            focusedField = nil
+                            onFinalizeAction()
+                        }
+                    }
+            }
+        }
+        .padding(16)
+        .background(
+            item.isMissing
+            ? Color.red.opacity(0.12)
+            : Color(.secondarySystemBackground)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+
+    // MARK: Temperature
 
     @ViewBuilder
     private var temperatureSection: some View {
 
         if item.item.tempTaken {
 
-            HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 12) {
 
-//                Text("Temperature")
-                Label("Temerature", systemImage: "thermometer.variable")
-                    .font(.subheadline)
-                    .foregroundColor(.blue)
+                fieldLabel(
+                    title: "Temperature",
+                    systemImage: "thermometer.medium"
+                )
 
-                Spacer()
+                HStack(spacing: 10) {
 
-                VStack(alignment: .trailing, spacing: 4) {
+                    HStack(spacing: 6) {
 
-//                    TextField("°F", text: $item.temperature)
-//                        .keyboardType(.decimalPad)
-//                        .focused($focusedField, equals: .temperature(item.id))
-//                        .padding(6)
-//                        .background(Color(.systemBackground))
-//                        .overlay(
-//                            RoundedRectangle(cornerRadius: 8)
-//                                .stroke(borderColor, lineWidth: 1.5)
-//                        )
-//                        .clipShape(RoundedRectangle(cornerRadius: 8))
-//                        .frame(width: 90)
-//                        .disabled(item.isMissing)
-                    
-                    HStack(spacing: 8) {
-
-                        TextField("°F", text: $item.temperature)
+                        TextField("", text: $item.temperature)
                             .keyboardType(.decimalPad)
-                            .focused($focusedField, equals: .temperature(item.id))
-                            .padding(6)
-                            .background(Color(.systemBackground))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(borderColor, lineWidth: 1.5)
+                            .focused(
+                                $focusedField,
+                                equals: .temperature(item.id)
                             )
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                            .frame(width: 90)
                             .disabled(item.isMissing)
-                            .submitLabel(.done)
-                            .onSubmit {
-                                focusedField = nil
-                                onFinalizeAction()
-                            }
+                            .font(.title3.weight(.semibold))
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: .infinity)
 
-                        Button {
-                            focusedField = nil
-                            onFinalizeAction()
-                        } label: {
-                            Text("Done")
-                                .font(.caption.bold())
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .background(Color.blue.opacity(0.15))
-                                .foregroundColor(.blue)
-                                .clipShape(Capsule())
-                        }
-                        .buttonStyle(.plain)
+                        Text("°F")
+                            .font(.headline.weight(.medium))
+                            .foregroundStyle(.secondary)
                     }
+                    .padding(.horizontal, 16)
+                    .frame(height: 54)
+                    .background(
+                        Color(.systemBackground)
+                    )
+                    .overlay {
 
-                    if case .invalid = validation,
-                       let min = item.item.minTemp,
-                       let max = item.item.maxTemp {
-
-                        Text("Allowed Range \(Int(min))°F – \(Int(max))°F")
-                            .font(.caption2)
-                            .foregroundColor(.red)
-                            .multilineTextAlignment(.trailing)
+                        RoundedRectangle(
+                            cornerRadius: 14,
+                            style: .continuous
+                        )
+                        .stroke(
+                            hasInvalidTemperature
+                            ? Color.red.opacity(0.7)
+                            : Color.primary.opacity(0.08),
+                            lineWidth: hasInvalidTemperature ? 1.5 : 1
+                        )
                     }
+                    .clipShape(
+                        RoundedRectangle(
+                            cornerRadius: 14,
+                            style: .continuous
+                        )
+                    )
+
+                    Button {
+                        focusedField = nil
+                        onFinalizeAction()
+                    } label: {
+                        Image(systemName: "checkmark")
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.regular)
+                }
+
+                if hasInvalidTemperature,
+                   let min = item.item.minTemp,
+                   let max = item.item.maxTemp {
+
+                    Text("Allowed range: \(Int(min))°F – \(Int(max))°F")
+                        .font(.footnote)
+                        .foregroundStyle(.red)
                 }
             }
+            .padding(14)
+            .background(
+                hasInvalidTemperature
+                ? Color.red.opacity(0.08)
+                : Color.clear
+            )
+            .clipShape(
+                RoundedRectangle(
+                    cornerRadius: 16,
+                    style: .continuous
+                )
+            )
         }
     }
 
-    // MARK: CHECK
+    // MARK: Prepared Correctly
+
     @ViewBuilder
     private var preparedCorrectlySection: some View {
 
         if item.item.checkMark {
 
-            HStack {
+            VStack(alignment: .leading, spacing: 14) {
 
-//                Text("Item Prepared Correctly?")
-                Label("Item Prepared Correctly?", systemImage: "checklist")
-                    .font(.subheadline)
-                    .foregroundColor(.green)
+                fieldLabel(
+                    title: "Prepared Correctly",
+                    systemImage: "checklist"
+                )
 
-                Spacer()
+                HStack(spacing: 12) {
 
-                Button {
-                    item.isChecked = true
-                    onFinalizeAction()
-                } label: {
-                    Label("Yes", systemImage: "checkmark.circle.fill")
-                        .foregroundColor(item.isChecked == true ? .green : .gray)
-                }
+                    Button {
 
-                Button {
-                    item.isChecked = false
-                    onFinalizeAction()
-                } label: {
-                    Label("No", systemImage: "xmark.circle.fill")
-                        .foregroundColor(item.isChecked == false ? .red : .gray)
+                        item.isChecked = true
+                        onFinalizeAction()
+
+                    } label: {
+
+                        Label("Yes", systemImage: "checkmark")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(
+                        item.isChecked == true
+                        ? .green
+                        : .gray.opacity(0.35)
+                    )
+
+                    Button {
+
+                        item.isChecked = false
+                        onFinalizeAction()
+
+                    } label: {
+
+                        Label("No", systemImage: "xmark")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(
+                        item.isChecked == false
+                        ? .red
+                        : .gray
+                    )
                 }
             }
+            .padding(14)
+            .background(
+                isPreparedIncorrectly
+                ? Color.red.opacity(0.08)
+                : Color.clear
+            )
+            .clipShape(
+                RoundedRectangle(
+                    cornerRadius: 16,
+                    style: .continuous
+                )
+            )
             .disabled(item.isMissing)
         }
     }
 
-    // MARK: MISSING
-    @ViewBuilder
+    // MARK: Missing Toggle
+
     private var missingToggle: some View {
 
-        HStack {
-            
-//            Text("Item Missing?")
-            Label("Item Missing?", systemImage: "nosign")
-                .font(.subheadline)
-                .foregroundColor(.red)
+        VStack(alignment: .leading, spacing: 14) {
 
-            Spacer()
+            fieldLabel(
+                title: "Item Missing",
+                systemImage: "nosign"
+            )
 
-            Toggle("", isOn: $item.isMissing)
-                .labelsHidden()
+            Toggle("Mark Item Missing", isOn: $item.isMissing)
                 .tint(.red)
                 .onChange(of: item.isMissing) { _, newValue in
+
                     if newValue {
+
                         item.temperature = ""
                         item.isChecked = nil
                         item.observations = ""
-                        
+
+                        focusedField = nil
+
                         onFinalizeAction()
                     }
                 }
         }
+        .padding(14)
+        .background(
+            item.isMissing
+            ? Color.red.opacity(0.12)
+            : Color.clear
+        )
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius: 16,
+                style: .continuous
+            )
+        )
     }
-    
-    // MARK: NOTES
 
-    @ViewBuilder
+    // MARK: Notes
+
     private var notesSection: some View {
 
-        if let notes = item.item.templateNotes,
-           !notes.isEmpty {
+        VStack(alignment: .leading, spacing: 14) {
 
-            VStack(alignment: .leading, spacing: 8) {
+            sectionHeader(
+                title: "Notes",
+                systemImage: "note.text"
+            )
 
-                HStack(spacing: 6) {
-
-                    Image(systemName: "note.text")
-                        .foregroundColor(.gray)
-
-                    Text("Notes")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-
-                    Spacer()
-                }
-
-                Text(notes)
-                    .font(.subheadline)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(12)
-            .background(Color(.systemGray6))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            Text(item.item.templateNotes ?? "")
+                .font(.body)
+                .foregroundStyle(.primary)
+                .fixedSize(horizontal: false, vertical: true)
         }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            Color(.secondarySystemBackground)
+        )
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius: 18,
+                style: .continuous
+            )
+        )
     }
 
-    // MARK: OBSERVATIONS
+    // MARK: Observations
 
     private var observationsSection: some View {
 
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 14) {
 
-            HStack {
-                Image(systemName: "square.and.pencil")
-                    .foregroundColor(.gray)
-
-                Text("Observations")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-
-                Spacer()
-            }
+            sectionHeader(
+                title: "Observations",
+                systemImage: "square.and.pencil"
+            )
 
             TextEditor(text: $item.observations)
-                .focused($focusedField, equals: .observation(item.id))
-                .frame(minHeight: 70)
-                .padding(8)
-                .background(Color(.systemBackground))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(Color.gray.opacity(0.4))
+                .focused(
+                    $focusedField,
+                    equals: .observation(item.id)
                 )
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .scrollContentBackground(.hidden)
+                .padding(12)
+                .frame(
+                    minHeight: horizontalSizeClass == .regular
+                    ? 90
+                    : 110
+                )
+                .background(
+                    Color(.systemBackground)
+                )
+                .clipShape(
+                    RoundedRectangle(
+                        cornerRadius: 16,
+                        style: .continuous
+                    )
+                )
+                .overlay {
+
+                    RoundedRectangle(
+                        cornerRadius: 16,
+                        style: .continuous
+                    )
+                    .stroke(
+                        Color.primary.opacity(0.08),
+                        lineWidth: 1
+                    )
+                }
         }
+        .padding(18)
+        .background(
+            Color(.secondarySystemBackground)
+        )
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius: 18,
+                style: .continuous
+            )
+        )
     }
 
-    // MARK: METADATA
-    @ViewBuilder
-    private var metadataSection: some View {
+    // MARK: Helpers
 
-        let hasAny =
-            !(item.item.shelfLife?.isEmpty ?? true) ||
-            !(item.item.panSize?.isEmpty ?? true) ||
-            !(item.item.toolName?.isEmpty ?? true) ||
-            !(item.item.portionSize?.isEmpty ?? true)
+    private var hasNotes: Bool {
 
-        if hasAny {
-
-            VStack(alignment: .leading, spacing: 8) {
-
-                metadataRow(icon: "clock", label: "Shelf Life", value: item.item.shelfLife, color: .orange)
-                metadataRow(icon: "square.grid.2x2", label: "Pan Size", value: item.item.panSize, color: .green)
-                metadataRow(icon: "wrench.and.screwdriver", label: "Tool", value: item.item.toolName, color: .blue)
-                metadataRow(icon: "scalemass", label: "Portion Size", value: item.item.portionSize, color: .purple)
-            }
-            .padding(12)
-            .background(Color(.systemGray6))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-        }
+        !(item.item.templateNotes?.isEmpty ?? true)
     }
+
+    private func sectionHeader(
+        title: String,
+        systemImage: String
+    ) -> some View {
+
+        Label(title, systemImage: systemImage)
+            .font(.headline.weight(.semibold))
+            .foregroundStyle(.primary)
+            .symbolRenderingMode(.hierarchical)
+    }
+
+    private func fieldLabel(
+        title: String,
+        systemImage: String
+    ) -> some View {
+
+        Label(title, systemImage: systemImage)
+            .font(.footnote.weight(.medium))
+            .foregroundStyle(.secondary)
+            .symbolRenderingMode(.hierarchical)
+    }
+
+    private func statusBadge(
+        title: String,
+        systemImage: String
+    ) -> some View {
+
+        Label(title, systemImage: systemImage)
+            .font(.footnote.weight(.medium))
+            .foregroundStyle(.red)
+    }
+
     @ViewBuilder
-    private func metadataRow(icon: String, label: String, value: String?, color: Color) -> some View {
+    private func metadataRow(
+        icon: String,
+        label: String,
+        value: String?
+    ) -> some View {
 
         if let value, !value.isEmpty {
 
-            HStack {
+            HStack(alignment: .center, spacing: 12) {
+
                 Image(systemName: icon)
-                    .foregroundColor(color)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .symbolRenderingMode(.hierarchical)
+                    .frame(width: 18)
 
                 Text(label)
-                    .foregroundColor(color)
+                    .foregroundStyle(.secondary)
 
-                Spacer()
+                Spacer(minLength: 20)
 
                 Text(value)
+                    .foregroundStyle(.primary)
+                    .multilineTextAlignment(.trailing)
             }
+            .font(.subheadline)
         }
     }
 }
-
