@@ -173,17 +173,17 @@ struct LineCheckDetailView: View {
             .background(.ultraThinMaterial)
             
         }
-        .toolbar {
-
-            ToolbarItemGroup(placement: .keyboard) {
-
-                Spacer()
-
-                Button("Done") {
-                    focusedField = nil
-                }
-            }
-        }
+//        .toolbar {
+//
+//            ToolbarItemGroup(placement: .keyboard) {
+//
+//                Spacer()
+//
+//                Button("Done") {
+//                    focusedField = nil
+//                }
+//            }
+//        }
     }
 
     // MARK: BINDING

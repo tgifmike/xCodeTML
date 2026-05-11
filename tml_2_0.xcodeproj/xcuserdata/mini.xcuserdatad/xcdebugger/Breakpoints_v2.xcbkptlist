@@ -7,16 +7,16 @@
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "A88290BB-0DF8-40E0-B581-1DFA82BA9A57"
+            uuid = "FCDCF4D3-13A0-4BF3-B525-1318887ADB19"
             shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "tml.2.0/LineCheckItemRow.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "156"
-            endingLineNumber = "156"
-            landmarkName = "preparedCorrectlySection"
+            startingLineNumber = "193"
+            endingLineNumber = "193"
+            landmarkName = "detailsCard"
             landmarkType = "24">
          </BreakpointContent>
       </BreakpointProxy>
