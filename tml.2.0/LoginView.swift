@@ -3,151 +3,161 @@ import GoogleSignIn
 import AuthenticationServices
 
 struct LoginView: View {
-
+    
     @Environment(\.colorScheme) private var colorScheme
     
     let onLoginSuccess: (UserSession) -> Void
-
+    
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var showErrorAlert = false
     @State private var attemptedEmail: String?
-    @State private var logoTapCount = 0
-    @State private var showDemoButton = false
-
+    //    @State private var logoTapCount = 0
+    //    @State private var showDemoButton = false
+    
     var body: some View {
-
+        
         VStack {
-
+            
             Spacer()
-
+            
             Image("new_tml_logo")
                 .resizable()
                 .scaledToFit()
                 .frame(width: 140, height: 140)
                 .clipShape(Circle())
-                .overlay(Circle().stroke(Color.white, lineWidth: 2))
-                .onTapGesture {
-                        logoTapCount += 1
-                        
-                        if logoTapCount >= 5 {
-                            showDemoButton = true
-                            logoTapCount = 0
-                        }
-                    }
-
-            Text("Welcome to The Manager Life")
-                .font(.title2)
-                .foregroundColor(.blue)
-                .multilineTextAlignment(.center)
-                .padding()
-
-            Button(action: signInWithGoogle) {
-
-                if isLoading {
-                    ProgressView()
-                        .tint(.white)
-                        .frame(height: 56)
-                        .frame(maxWidth: 250)
-
-                } else {
-
-                    HStack {
-
-                        Image("ic_google_logo")
-                            .resizable()
-                            .frame(width: 24, height: 24)
-                            .cornerRadius(26)
-
-                        Text("Sign in with Google")
-                            .font(.headline)
-                    }
-                    .frame(height: 56)
-                    .frame(maxWidth: 250)
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(26)
-                }
-            }
-            .buttonStyle(.plain)
-            .disabled(isLoading)
-
-
-            SignInWithAppleButton(
-                .signIn,
-                onRequest: { request in
-                    request.requestedScopes = [.fullName, .email]
-                },
-                onCompletion: handleAppleLogin
-            )
-            .signInWithAppleButtonStyle(.black)
-            .frame(height: 56)
-            .frame(maxWidth: 250)
-            .cornerRadius(24)
-            .overlay(
-                RoundedRectangle(cornerRadius: 24)
-                    .stroke(
-                        colorScheme == .dark
-                        ? Color.white.opacity(0.4)
-                        : Color.black.opacity(0.2),
-                        lineWidth: 1
-                    )
-            )
-            
-            if allowDemoMode {
-                
-                Button(action: loginDemoUser) {
-
-                    Text("Demo Mode")
-                        .font(.headline)
-                        .frame(maxWidth: 250)
-                        .frame(height: 56)
-                        .background(Color.blue.opacity(0.15))
-                        .foregroundColor(.blue)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 26)
-                                .stroke(Color.blue, lineWidth: 1)
+                .overlay(
+                    Circle()
+                        .stroke(
+                            Color.primary.opacity(0.08),
+                            lineWidth: 1
                         )
-                        .clipShape(RoundedRectangle(cornerRadius: 26))
+                )
+            
+            Text("Welcome to The Manager Life")
+                .font(.title2.weight(.semibold))
+                .multilineTextAlignment(.center)
+                .padding(.top, 12)
+            
+            Text("Food safety and operational excellence.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .padding(.top, 2)
+            
+            VStack(spacing: 14) {
+                
+                // GOOGLE
+                
+                Button(action: signInWithGoogle) {
+                    
+                    if isLoading {
+                        
+                        ProgressView()
+                            .tint(.white)
+                            .frame(height: 56)
+                            .frame(maxWidth: 260)
+                        
+                    } else {
+                        
+                        HStack(spacing: 12) {
+                            
+                            Image("ic_google_logo")
+                                .resizable()
+                                .frame(width: 22, height: 22)
+                                .clipShape(
+                                    Circle()
+                                )
+                            
+                            Text("Continue with Google")
+                                .font(.headline)
+                        }
+                        .frame(height: 56)
+                        .frame(maxWidth: 260)
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .clipShape(
+                            RoundedRectangle(
+                                cornerRadius: 18,
+                                style: .continuous
+                            )
+                        )
+                    }
                 }
                 .buttonStyle(.plain)
+                .disabled(isLoading)
+                
+                // APPLE
+                
+                SignInWithAppleButton(
+                    .signIn,
+                    onRequest: { request in
+                        request.requestedScopes = [.fullName, .email]
+                    },
+                    onCompletion: handleAppleLogin
+                )
+                .signInWithAppleButtonStyle(
+                    colorScheme == .dark ? .white : .black
+                )
+                .frame(height: 56)
+                .frame(maxWidth: 260)
+                .clipShape(
+                    RoundedRectangle(
+                        cornerRadius: 18,
+                        style: .continuous
+                    )
+                )
             }
-
+            .padding(.top, 28)
+            
+            // PREVIEW MODE
+            
+            VStack(spacing: 10) {
+                
+                Text("Preview a sample workspace without signing in.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                
+                Button(action: loginDemoUser) {
+                    
+                    Label(
+                        "Explore Preview",
+                        systemImage: "sparkles"
+                    )
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .frame(height: 44)
+                }
+                .buttonStyle(.plain)
+                
+                Text("Line checks completed in preview mode will not be saved.")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 30)
+            }
+            .padding(.top, 22)
+            
             Spacer()
-
-            Text("TML v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")")
-                .font(.footnote)
-                .padding(.bottom, 12)
+            
+            Text(
+                "TML version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")"
+            )
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+            .padding(.bottom, 12)
         }
         .padding()
-        .alert("Login Failed",
-               isPresented: $showErrorAlert) {
-
+        .alert(
+            "Login Failed",
+            isPresented: $showErrorAlert
+        ) {
+            
             Button("OK", role: .cancel) {}
-
+            
         } message: {
-
+            
             Text(errorMessage ?? "Unknown error")
         }
-    }
-    
-    private var allowDemoMode: Bool {
-
-    #if DEBUG
-        return true
-    #else
-
-        if ProcessInfo.processInfo.environment["SIMULATOR_DEVICE_NAME"] != nil {
-            return true
-        }
-
-        guard let receiptURL = Bundle.main.appStoreReceiptURL else {
-            return true
-        }
-
-        return receiptURL.lastPathComponent != "appStoreReceipt"
-
-    #endif
     }
 }
 
@@ -435,13 +445,12 @@ extension LoginView {
 //////////////////////////////////////////////////////////////
 
 extension LoginView {
+
     func loginDemoUser() {
 
-        guard allowDemoMode else { return }
-
         guard let url =
-            URL(string:
-                "https://app-javabackend-5e1ae1d5056c.herokuapp.com/users/demo-login")
+                URL(string:
+                        "https://app-javabackend-5e1ae1d5056c.herokuapp.com/users/demo-login")
         else { return }
 
         var request = URLRequest(url: url)
@@ -456,8 +465,12 @@ extension LoginView {
 
             DispatchQueue.main.async {
 
-                handleSuccessfulLogin(data: data, provider: "demo")
+                handleSuccessfulLogin(
+                    data: data,
+                    provider: "demo"
+                )
             }
 
         }.resume()
-    }}
+    }
+}

@@ -58,7 +58,7 @@ struct LineCheckItemRow: View {
         }
         .padding(18)
         .background(
-            Color(.white)
+            Color(.systemBackground)
         )
         .clipShape(
             RoundedRectangle(
@@ -147,7 +147,8 @@ struct LineCheckItemRow: View {
 
                     detailsCard
                     compactValidationCard
-                    missingToggle
+                    missingCard
+//                    missingToggle
                 }
             }
         }

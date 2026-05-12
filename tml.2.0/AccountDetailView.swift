@@ -70,7 +70,7 @@ private extension AccountDetailView {
                 .font(.title.bold())
             
             Text("Account: \(account.name)")
-                .font(.subheadline)
+                .font(.headline)
                 .foregroundStyle(.secondary)
 
             Toggle(isOn: $showInactive) {
@@ -206,7 +206,7 @@ private struct LocationCard: View {
             VStack(alignment: .leading, spacing: 4) {
 
                 Text(location.name)
-                    .font(.headline)
+                    .font(.title.bold())
 
             }
 
@@ -215,7 +215,7 @@ private struct LocationCard: View {
             // Optional subtle indicator (NOT system chevron)
             Image(systemName: "arrow.right")
                 .font(.footnote.weight(.semibold))
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(.primary)
         }
         .padding(16)
         .background(

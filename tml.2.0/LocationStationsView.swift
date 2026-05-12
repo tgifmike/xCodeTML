@@ -243,17 +243,26 @@ struct StationCard: View {
 
                 Text(isSelected ? "Selected" : "Tap to select")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.primary)
             }
             .padding()
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(isSelected ? Color.blue.opacity(0.12) : Color.gray.opacity(0.08))
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(
+                        isSelected
+                        ? Color.blue.opacity(0.15)
+                        : Color(.secondarySystemBackground)
+                    )
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(isSelected ? Color.blue : Color.clear, lineWidth: 1)
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(
+                        isSelected
+                        ? Color.blue.opacity(0.8)
+                        : Color.primary.opacity(0.06),
+                        lineWidth: 1
+                    )
             )
         }
         .buttonStyle(.plain)
