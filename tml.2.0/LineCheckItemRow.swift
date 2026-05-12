@@ -266,6 +266,26 @@ struct LineCheckItemRow: View {
 
     // MARK: Temperature
 
+    private var temperatureBorderColor: Color {
+
+        switch validation {
+
+        case .valid:
+            return Color.green.opacity(0.8)
+
+        case .invalid:
+            return Color.red.opacity(0.8)
+
+        case .empty:
+            return Color.primary.opacity(0.08)
+        }
+    }
+
+    private var temperatureBorderWidth: CGFloat {
+
+        validation == .empty ? 1 : 1.5
+    }
+    
     @ViewBuilder
     private var temperatureSection: some View {
 
@@ -309,10 +329,8 @@ struct LineCheckItemRow: View {
                             style: .continuous
                         )
                         .stroke(
-                            hasInvalidTemperature
-                            ? Color.red.opacity(0.7)
-                            : Color.primary.opacity(0.08),
-                            lineWidth: hasInvalidTemperature ? 1.5 : 1
+                            temperatureBorderColor,
+                            lineWidth: temperatureBorderWidth
                         )
                     }
                     .clipShape(
