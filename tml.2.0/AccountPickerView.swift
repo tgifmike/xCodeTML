@@ -73,11 +73,12 @@ private extension AccountPickerView {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Welcome")
-                    .font(.caption)
+                    .font(.headline)
                     .foregroundStyle(.blue)
 
                 Text(sessionManager.session?.userName ?? "User")
-                    .font(.title3.bold())
+                    .font(.title.bold())
+                    
             }
 
             Spacer()
@@ -157,7 +158,7 @@ private extension AccountPickerView {
             return
         }
 
-        print("👤 USER ID:", userId)
+    
         
         isLoading = true
         hasLoaded = false
@@ -195,7 +196,7 @@ private struct AccountCard: View {
 
             Image(systemName: "arrow.right")
                 .font(.footnote.weight(.semibold))
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(.primary)
         }
         .padding(16)
         .background(
@@ -226,7 +227,7 @@ private struct AccountCard: View {
                     .foregroundStyle(.gray)
             }
         }
-        .frame(width: 40, height: 40)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .frame(width: 60, height: 60)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }
