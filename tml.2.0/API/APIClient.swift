@@ -49,12 +49,22 @@ final class APIClient {
 
         switch http.statusCode {
         case 200...299:
+
             let decoder = JSONDecoder()
             decoder.keyDecodingStrategy = .convertFromSnakeCase
             decoder.dateDecodingStrategy = .iso8601
 
-            return try decoder.decode(T.self, from: data)
+            // ✅ HANDLE EMPTY RESPONSE (204, 200 with no body)
+            if data.isEmpty {
 
+                guard T.self == EmptyResponse.self else {
+                    throw APIError.invalidResponse
+                }
+
+                return EmptyResponse() as! T
+            }
+
+            return try decoder.decode(T.self, from: data)
         case 401:
             throw APIError.unauthorized
 
@@ -64,5 +74,9 @@ final class APIClient {
         default:
             throw APIError.serverError(http.statusCode)
         }
+    }
+    
+    private func isEmptyResponse<T>(_ type: T.Type) -> Bool {
+        return type == EmptyResponse.self
     }
 }

@@ -58,6 +58,9 @@
 		3D934E382FABD12500DC81AA /* LineCheckItemState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D934E372FABD11A00DC81AA /* LineCheckItemState.swift */; };
 		3D934E3A2FABD14E00DC81AA /* LineCheckStationState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D934E392FABD14800DC81AA /* LineCheckStationState.swift */; };
 		3D934E3C2FABD43200DC81AA /* LineCheckDetailVM.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D934E3B2FABD17700DC81AA /* LineCheckDetailVM.swift */; };
+		3D934E3E2FB4A7BA00DC81AA /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D934E3D2FB4A7AD00DC81AA /* SplashView.swift */; };
+		3D934E402FB4ACD500DC81AA /* AutoLogoutInterval.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D934E3F2FB4ACD100DC81AA /* AutoLogoutInterval.swift */; };
+		3D934E4C2FB4D25A00DC81AA /* UserProfileViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D934E4B2FB4D24B00DC81AA /* UserProfileViewModel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -112,7 +115,18 @@
 		3D934E372FABD11A00DC81AA /* LineCheckItemState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineCheckItemState.swift; sourceTree = "<group>"; };
 		3D934E392FABD14800DC81AA /* LineCheckStationState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineCheckStationState.swift; sourceTree = "<group>"; };
 		3D934E3B2FABD17700DC81AA /* LineCheckDetailVM.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineCheckDetailVM.swift; sourceTree = "<group>"; };
+		3D934E3D2FB4A7AD00DC81AA /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
+		3D934E3F2FB4ACD100DC81AA /* AutoLogoutInterval.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoLogoutInterval.swift; sourceTree = "<group>"; };
+		3D934E4B2FB4D24B00DC81AA /* UserProfileViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfileViewModel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		3D934E412FB4ADBB00DC81AA /* autoLogOut */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = autoLogOut;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		3D3AD2342F4E2B9C005F14E5 /* Frameworks */ = {
@@ -178,6 +192,7 @@
 		3D54415C2FAB46AD00DC73D9 /* enum */ = {
 			isa = PBXGroup;
 			children = (
+				3D934E3F2FB4ACD100DC81AA /* AutoLogoutInterval.swift */,
 				3D5441582FAB46AD00DC73D9 /* APIError.swift */,
 				3D5441592FAB46AD00DC73D9 /* AuthProvider.swift */,
 				3D54415A2FAB46AD00DC73D9 /* LineCheckCompletionMode.swift */,
@@ -244,6 +259,9 @@
 				3D934E302FABB06A00DC81AA /* LineCheckItemRowVM.swift */,
 				3D934E352FABB19100DC81AA /* LineCheckStationVM.swift */,
 				3D934E3B2FABD17700DC81AA /* LineCheckDetailVM.swift */,
+				3D934E4B2FB4D24B00DC81AA /* UserProfileViewModel.swift */,
+				3D934E412FB4ADBB00DC81AA /* autoLogOut */,
+				3D934E3D2FB4A7AD00DC81AA /* SplashView.swift */,
 			);
 			path = tml.2.0;
 			sourceTree = "<group>";
@@ -262,6 +280,9 @@
 			buildRules = (
 			);
 			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				3D934E412FB4ADBB00DC81AA /* autoLogOut */,
 			);
 			name = tml.2.0;
 			packageProductDependencies = (
@@ -343,6 +364,7 @@
 				3D54418B2FAB46AD00DC73D9 /* Endpoint.swift in Sources */,
 				3D54418C2FAB46AD00DC73D9 /* AccountDetailView.swift in Sources */,
 				3D54418D2FAB46AD00DC73D9 /* LocationDetailView.swift in Sources */,
+				3D934E3E2FB4A7BA00DC81AA /* SplashView.swift in Sources */,
 				3D54418E2FAB46AD00DC73D9 /* LineCheckDetailView.swift in Sources */,
 				3D54418F2FAB46AD00DC73D9 /* Session.swift in Sources */,
 				3D5441902FAB46AD00DC73D9 /* LineCheckApi.swift in Sources */,
@@ -354,8 +376,10 @@
 				3D5441962FAB46AD00DC73D9 /* LineCheckStationInput.swift in Sources */,
 				3D5441972FAB46AD00DC73D9 /* CreateLineCheckRequest.swift in Sources */,
 				3D5441982FAB46AD00DC73D9 /* StationChip.swift in Sources */,
+				3D934E402FB4ACD500DC81AA /* AutoLogoutInterval.swift in Sources */,
 				3D5441992FAB46AD00DC73D9 /* LocationStationsView.swift in Sources */,
 				3D54419A2FAB46AD00DC73D9 /* CustomAlertView.swift in Sources */,
+				3D934E4C2FB4D25A00DC81AA /* UserProfileViewModel.swift in Sources */,
 				3D54419B2FAB46AD00DC73D9 /* LineCheckDto.swift in Sources */,
 				3D54419C2FAB46AD00DC73D9 /* LineCheckStationSection.swift in Sources */,
 				3D934E3A2FABD14E00DC81AA /* LineCheckStationState.swift in Sources */,
