@@ -4,70 +4,42 @@
 //
 
 import SwiftUI
-import GoogleSignIn
 
 struct UserProfileView: View {
 
-    @EnvironmentObject var sessionManager: SessionManager
+    @StateObject private var vm: UserProfileViewModel
 
-    @State private var showDeleteAlert = false
-    @State private var isDeleting = false
-
-    private var session: UserSession? {
-        sessionManager.session
+    init(sessionManager: SessionManager) {
+        _vm = StateObject(
+            wrappedValue: UserProfileViewModel(sessionManager: sessionManager)
+        )
     }
 
     var body: some View {
-
         Form {
-
-            profileHeaderSection
-
-            userInfoSection
-
-            accountActionsSection
-
-            #if DEBUG
-            debugSection
-            #endif
+            profileHeader
+            userInfo
+            actions
         }
         .navigationTitle("Profile")
-        .alert(
-            "Delete Account?",
-            isPresented: $showDeleteAlert
-        ) {
-
-            Button("Delete", role: .destructive) {
-                deleteAccount()
-            }
-
-            Button("Cancel", role: .cancel) { }
-
-        } message: {
-
-            Text("This will permanently delete your account and remove access to all data.")
+        .sheet(isPresented: $vm.showDeleteSheet) {
+            deleteSheet
         }
     }
 }
 
-//////////////////////////////////////////////////////////////
-// MARK: HEADER
-//////////////////////////////////////////////////////////////
-
 private extension UserProfileView {
 
-    var profileHeaderSection: some View {
-
+    var profileHeader: some View {
         Section {
-
             VStack(spacing: 12) {
 
                 profileImage
 
-                Text(session?.userName ?? "Unknown User")
+                Text(vm.session?.userName ?? "Unknown User")
                     .font(.headline)
 
-                Text(session?.email ?? "")
+                Text(vm.session?.email ?? "")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -76,112 +48,84 @@ private extension UserProfileView {
     }
 }
 
-//////////////////////////////////////////////////////////////
-// MARK: USER INFO
-//////////////////////////////////////////////////////////////
-
 private extension UserProfileView {
 
-    var userInfoSection: some View {
-
+    var userInfo: some View {
         Section("User Info") {
 
-            profileRow("User ID", session?.userId)
-
-            profileRow("App Role", session?.appRole)
-
-            profileRow("Access Role", session?.accessRole)
-
-            profileRow("Sign-In Method", session?.authProvider.displayName)        }
-    }
-}
-
-//////////////////////////////////////////////////////////////
-// MARK: ACCOUNT ACTIONS
-//////////////////////////////////////////////////////////////
-
-private extension UserProfileView {
-
-    var accountActionsSection: some View {
-
-        Section {
-
-            Button(role: .destructive) {
-
-                showDeleteAlert = true
-
-            } label: {
-
-                if isDeleting {
-
-                    ProgressView()
-
-                } else {
-
-                    Text("Delete Account")
-                }
-            }
-            .disabled(isDeleting)
+            profileRow("User ID", vm.session?.userId)
+            profileRow("App Role", vm.session?.appRole)
+            profileRow("Access Role", vm.session?.accessRole)
+            profileRow("Sign-In Method", vm.session?.authProvider.displayName)
         }
     }
 }
 
-//////////////////////////////////////////////////////////////
-// MARK: DEBUG SECTION
-//////////////////////////////////////////////////////////////
+private extension UserProfileView {
+
+    var actions: some View {
+        
+        Section {
+            
+            Button(role: .destructive) {
+                vm.openDeleteSheet()
+            } label: {
+                
+                if vm.isDeleting {
+                    
+                    ProgressView()
+                    
+                } else {
+                    
+                    Text("Delete Account")
+                }
+            }
+            .disabled(vm.isDeleting)
+        }
+    }
+}
 
 private extension UserProfileView {
 
     var debugSection: some View {
-
         Section("Debug Info") {
-
-            profileRow("JWT", session?.jwt)
+            profileRow("JWT", vm.session?.jwt)
         }
     }
 }
 
-//////////////////////////////////////////////////////////////
-// MARK: HELPERS
-//////////////////////////////////////////////////////////////
-
 private extension UserProfileView {
 
-    func profileRow(
-        _ title: String,
-        _ value: String?
-    ) -> some View {
-
+    func profileRow(_ title: String, _ value: String?) -> some View {
         HStack {
-
             Text(title)
-
             Spacer()
-
             Text(value ?? "Unknown")
                 .foregroundStyle(.secondary)
                 .textSelection(.enabled)
         }
     }
+}
+
+private extension UserProfileView {
 
     var profileImage: some View {
-
         Group {
-
-            if let urlString = session?.userImage,
+            if let urlString = vm.session?.userImage,
                let url = URL(string: urlString) {
 
-                AsyncImage(url: url) {
-
-                    $0.resizable()
-
-                } placeholder: {
-
-                    ProgressView()
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image.resizable().scaledToFill()
+                    default:
+                        Image(systemName: "person.circle.fill")
+                            .resizable()
+                            .foregroundStyle(.gray)
+                    }
                 }
 
             } else {
-
                 Image(systemName: "person.circle.fill")
                     .resizable()
                     .foregroundStyle(.gray)
@@ -192,44 +136,41 @@ private extension UserProfileView {
     }
 }
 
-//////////////////////////////////////////////////////////////
-// MARK: DELETE ACCOUNT
-//////////////////////////////////////////////////////////////
-
 private extension UserProfileView {
 
-    func deleteAccount() {
+    var deleteSheet: some View {
+        VStack(spacing: 20) {
 
-        guard let userId = session?.userId else {
-            return
-        }
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 50))
+                .foregroundStyle(.red)
 
-        isDeleting = true
+            Text("Delete Account?")
+                .font(.title2)
+                .bold()
 
-        Task {
+            Text("This action is permanent and cannot be undone.")
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.secondary)
 
-            do {
-                try await UserApi.shared.deleteUser(userId: userId)
+            if vm.isDeleting {
+                ProgressView("Deleting...")
+            } else {
 
-                await MainActor.run {
-                    signOutUserAfterDeletion()
-                    isDeleting = false
+                Button(role: .destructive) {
+                    vm.confirmDelete()
+                } label: {
+                    Text("Yes, Delete My Account")
+                        .frame(maxWidth: .infinity)
                 }
+                .buttonStyle(.borderedProminent)
 
-            } catch {
-
-                await MainActor.run {
-                    isDeleting = false
-                    print("❌ Delete failed:", error.localizedDescription)
+                Button("Cancel") {
+                    vm.cancelDelete()
                 }
             }
         }
-    }
-
-    func signOutUserAfterDeletion() {
-
-        GIDSignIn.sharedInstance.signOut()
-
-        sessionManager.logout()
+        .padding()
+        .presentationDetents([.medium])
     }
 }

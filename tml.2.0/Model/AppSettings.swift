@@ -5,10 +5,26 @@
 //  Created by mike on 4/21/26.
 //
 
+
 import SwiftUI
 import Combine
 
-class AppSettings: ObservableObject {
+final class AppSettings: ObservableObject {
 
     @Published var completionMode: LineCheckCompletionMode = .requireAllItemsCompleted
+
+    @AppStorage("autoLogoutInterval")
+    private var autoLogoutRawValue: String = AutoLogoutInterval.never.rawValue
+
+    @Published var autoLogoutInterval: AutoLogoutInterval = .never
+
+    init() {
+        self.autoLogoutInterval =
+            AutoLogoutInterval(rawValue: autoLogoutRawValue) ?? .never
+    }
+
+    func setAutoLogout(_ newValue: AutoLogoutInterval) {
+        autoLogoutRawValue = newValue.rawValue
+        autoLogoutInterval = newValue
+    }
 }

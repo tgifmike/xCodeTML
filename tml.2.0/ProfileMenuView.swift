@@ -1,10 +1,3 @@
-//
-//  ProfileMenuView.swift
-//  tml.2.0
-//
-//  Created by mike on 4/13/26.
-//
-
 import SwiftUI
 import GoogleSignIn
 
@@ -17,38 +10,27 @@ struct ProfileMenuView: View {
         Menu {
 
             NavigationLink {
-
-                if sessionManager.session != nil {
-
-                    UserProfileView()
-                }
-
+                UserProfileView(sessionManager: sessionManager)
             } label: {
-
-                Label("Profile",
-                      systemImage: "person.crop.circle")
+                Label("Profile", systemImage: "person.crop.circle")
             }
-            
+
             NavigationLink {
-
                 SettingsView()
-
+                    .environmentObject(sessionManager)
             } label: {
-
-                Label(
-                    "Settings",
-                    systemImage: "gearshape"
-                )
+                Label("Settings", systemImage: "gearshape")
             }
 
-            Button() {
+            Divider()
 
+            Button(role: .destructive) {
                 signOut()
-
             } label: {
-
-                Label("Sign Out",
-                      systemImage: "rectangle.portrait.and.arrow.right")
+                Label(
+                    "Sign Out",
+                    systemImage: "rectangle.portrait.and.arrow.right"
+                )
             }
 
         } label: {
@@ -59,32 +41,47 @@ struct ProfileMenuView: View {
         }
     }
 
+    // MARK: - Profile Image
+
     private var profileImage: some View {
 
-        if let imageUrl = sessionManager.session?.userImage,
-           let url = URL(string: imageUrl) {
+        Group {
 
-            return AnyView(
-                AsyncImage(url: url) { image in
-                    image.resizable()
-                } placeholder: {
-                    ProgressView()
+            if let urlString = sessionManager.session?.userImage,
+               let url = URL(string: urlString) {
+
+                AsyncImage(url: url) { phase in
+
+                    switch phase {
+
+                    case .success(let image):
+
+                        image
+                            .resizable()
+                            .scaledToFill()
+
+                    default:
+
+                        Image(systemName: "person.circle.fill")
+                            .resizable()
+                            .scaledToFill()
+                    }
                 }
-            )
 
-        } else {
+            } else {
 
-            return AnyView(
                 Image(systemName: "person.circle.fill")
                     .resizable()
-            )
+                    .scaledToFill()
+            }
         }
     }
+
+    // MARK: - Sign Out
 
     private func signOut() {
 
         GIDSignIn.sharedInstance.signOut()
-
         sessionManager.logout()
     }
 }
