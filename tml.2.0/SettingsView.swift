@@ -280,6 +280,20 @@ struct SettingsView: View {
                 }
             }
 
+            Section {
+                Toggle(
+                    "Show Line Check History",
+                    isOn: Binding(
+                        get: { appSettings.canViewLineCheckHistory },
+                        set: { appSettings.setLineCheckHistoryPermission($0) }
+                    )
+                )
+            } header: {
+                Text("History")
+            } footer: {
+                Text("Controls whether Line Check History appears on the location Dashboard.")
+            }
+
             // MARK: Auto Logout
             Section {
 

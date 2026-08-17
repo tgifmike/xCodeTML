@@ -6,7 +6,21 @@ struct LineCheckDetailView: View {
     let locationId: String
     let locationName: String
     let accountName: String
-    
+    let isReadOnly: Bool
+
+    init(
+        lineCheckId: String,
+        locationId: String,
+        locationName: String,
+        accountName: String,
+        isReadOnly: Bool = false
+    ) {
+        self.lineCheckId = lineCheckId
+        self.locationId = locationId
+        self.locationName = locationName
+        self.accountName = accountName
+        self.isReadOnly = isReadOnly
+    }
 
     @StateObject private var vm = LineCheckDetailVM()
 
@@ -147,12 +161,17 @@ struct LineCheckDetailView: View {
 
                     headerSection
 
+                    if isReadOnly {
+                        readOnlyBanner
+                    }
+
                     ForEach(stationNames, id: \.self) { stationName in
 
                         LineCheckStationSection(
                             stationName: stationName,
                             items: bindingForStation(stationName),
-                            focusedField: $focusedField
+                            focusedField: $focusedField,
+                            isReadOnly: isReadOnly
                         )
                     }
 
@@ -164,13 +183,15 @@ struct LineCheckDetailView: View {
             }
             .scrollDismissesKeyboard(.interactively)
             
-            // BOTTOM STICKY SAVE BUTTON
-            VStack {
+            if !isReadOnly {
+                // BOTTOM STICKY SAVE BUTTON
+                VStack {
 
-                saveButton
+                    saveButton
+                }
+                .padding()
+                .background(.ultraThinMaterial)
             }
-            .padding()
-            .background(.ultraThinMaterial)
             
         }
 //        .toolbar {
@@ -318,6 +339,16 @@ struct LineCheckDetailView: View {
         .padding()
         .background(.background)
         .clipShape(RoundedRectangle(cornerRadius: 14))
+    }
+
+    private var readOnlyBanner: some View {
+        Label("Read-only history view", systemImage: "lock.fill")
+            .font(.subheadline.weight(.medium))
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
+            .background(Color(.secondarySystemBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     // MARK: START TIME FORMAT

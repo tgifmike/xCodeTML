@@ -7,8 +7,7 @@ struct LineCheckStationSection: View {
     @Binding var items: [LineCheckItemState]
 
     @FocusState.Binding var focusedField: LineCheckField?
-    
-    
+    let isReadOnly: Bool
 
     @State private var isExpanded = true
 
@@ -69,6 +68,7 @@ struct LineCheckStationSection: View {
                     LineCheckItemRow(
                         item: $items[index],
                         focusedField: $focusedField,
+                        isReadOnly: isReadOnly,
                         onFinalizeAction: collapseIfComplete
                     )
                 }

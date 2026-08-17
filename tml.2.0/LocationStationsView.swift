@@ -20,30 +20,26 @@ struct LocationStationsView: View {
     @State private var createdLineCheckId: String?
 
     var body: some View {
-
-        NavigationStack {
-
-            content
-                .navigationTitle("")
-                .navigationBarTitleDisplayMode(.inline)
-                .navigationDestination(item: $createdLineCheckId) { id in
-                    LineCheckDetailView(
-                        lineCheckId: id,
-                        locationId: locationId,
-                        locationName: locationName,
-                        accountName: account.name
-                    )
+        content
+            .navigationTitle("Select Stations")
+            .navigationBarTitleDisplayMode(.inline)
+            .navigationDestination(item: $createdLineCheckId) { id in
+                LineCheckDetailView(
+                    lineCheckId: id,
+                    locationId: locationId,
+                    locationName: locationName,
+                    accountName: account.name
+                )
+            }
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    ProfileMenuView()
+                        .environmentObject(sessionManager)
                 }
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        ProfileMenuView()
-                            .environmentObject(sessionManager)
-                    }
-                }
-        }
-        .task {
-            await loadStations()
-        }
+            }
+            .task {
+                await loadStations()
+            }
     }
 }
 

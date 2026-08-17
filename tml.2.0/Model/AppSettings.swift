@@ -13,6 +13,11 @@ final class AppSettings: ObservableObject {
 
     @Published var completionMode: LineCheckCompletionMode = .requireAllItemsCompleted
 
+    @AppStorage("canViewLineCheckHistory")
+    private var canViewLineCheckHistoryRawValue: Bool = true
+
+    @Published var canViewLineCheckHistory: Bool = true
+
     @AppStorage("autoLogoutInterval")
     private var autoLogoutRawValue: String = AutoLogoutInterval.never.rawValue
 
@@ -21,6 +26,12 @@ final class AppSettings: ObservableObject {
     init() {
         self.autoLogoutInterval =
             AutoLogoutInterval(rawValue: autoLogoutRawValue) ?? .never
+        self.canViewLineCheckHistory = canViewLineCheckHistoryRawValue
+    }
+
+    func setLineCheckHistoryPermission(_ newValue: Bool) {
+        canViewLineCheckHistoryRawValue = newValue
+        canViewLineCheckHistory = newValue
     }
 
     func setAutoLogout(_ newValue: AutoLogoutInterval) {

@@ -29,6 +29,17 @@ final class LineCheckApi {
         )
     }
 
+    // MARK: - Completed Line Checks By Location
+    func getCompletedLineChecksByLocation(
+        locationId: String
+    ) async throws -> [LineCheckDto] {
+
+        try await APIClient.shared.request(
+            .getCompletedLineChecksByLocation(locationId: locationId),
+            responseType: [LineCheckDto].self
+        )
+    }
+
     // MARK: - Save Line Check
     func saveLineCheck(
         _ lineCheck: LineCheckDto
