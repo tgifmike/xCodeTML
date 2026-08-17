@@ -44,6 +44,14 @@ struct Endpoint {
             body: stationIds
         )
     }
+
+    static func getCompletedLineChecksByLocation(locationId: String) -> Endpoint {
+        Endpoint(
+            path: "/line-checks/completed/by-location/\(locationId)",
+            method: .GET,
+            body: nil
+        )
+    }
     static func getLocationsForAccount(accountId: String) -> Endpoint {
             Endpoint(
                 path: "/locations/accounts/\(accountId)/locations",

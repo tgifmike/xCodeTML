@@ -5,6 +5,7 @@ struct LineCheckItemRow: View {
     @Binding var item: LineCheckItemState
     @FocusState.Binding var focusedField: LineCheckField?
 
+    let isReadOnly: Bool
     let onFinalizeAction: () -> Void
 
     @Environment(\.horizontalSizeClass)
@@ -243,6 +244,7 @@ struct LineCheckItemRow: View {
 
                 Toggle("Mark Item Missing", isOn: $item.isMissing)
                     .tint(.red)
+                    .disabled(isReadOnly)
                     .onChange(of: item.isMissing) { _, newValue in
 
                         if newValue {
@@ -308,7 +310,7 @@ struct LineCheckItemRow: View {
                                 $focusedField,
                                 equals: .temperature(item.id)
                             )
-                            .disabled(item.isMissing)
+                            .disabled(isReadOnly || item.isMissing)
                             .font(.title3.weight(.semibold))
                             .multilineTextAlignment(.center)
                             .frame(maxWidth: .infinity)
@@ -348,6 +350,7 @@ struct LineCheckItemRow: View {
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.regular)
+                    .disabled(isReadOnly || item.isMissing)
                 }
 
                 if hasInvalidTemperature,
@@ -437,7 +440,7 @@ struct LineCheckItemRow: View {
                     style: .continuous
                 )
             )
-            .disabled(item.isMissing)
+            .disabled(isReadOnly || item.isMissing)
         }
     }
 
@@ -454,6 +457,7 @@ struct LineCheckItemRow: View {
 
             Toggle("Mark Item Missing", isOn: $item.isMissing)
                 .tint(.red)
+                .disabled(isReadOnly)
                 .onChange(of: item.isMissing) { _, newValue in
 
                     if newValue {
@@ -523,6 +527,7 @@ struct LineCheckItemRow: View {
             )
 
             TextEditor(text: $item.observations)
+                .disabled(isReadOnly)
                 .focused(
                     $focusedField,
                     equals: .observation(item.id)
