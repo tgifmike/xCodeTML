@@ -97,6 +97,14 @@ struct Endpoint {
                 body: dto
             )
         }
+
+        static func getLineCheckPhotos(lineCheckItemId: String) -> Endpoint {
+            Endpoint(
+                path: "/api/line-check-items/\(lineCheckItemId.urlPathSegmentEncoded)/photos",
+                method: .GET,
+                body: nil
+            )
+        }
 }
 
 extension Encodable {

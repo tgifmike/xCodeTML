@@ -29,5 +29,7 @@
 	</array>
 	<key>GIDClientID</key>
 	<string>2850496933-mb4fvrsps45mrjh46lvpfvjomgpco8vh.apps.googleusercontent.com</string>
+	<key>NSPhotoLibraryUsageDescripton</key>
+	<string>Allow TML to choose photos for line checks</string>
 </dict>
 </plist>

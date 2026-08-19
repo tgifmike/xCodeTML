@@ -1,4 +1,6 @@
 import SwiftUI
+import PhotosUI
+import UIKit
 
 struct LineCheckItemRow: View {
 
@@ -10,6 +12,14 @@ struct LineCheckItemRow: View {
 
     @Environment(\.horizontalSizeClass)
     private var horizontalSizeClass
+
+    @State private var photos: [LineCheckPhotoDto] = []
+    @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var isShowingCamera = false
+    @State private var isLoadingPhotos = false
+    @State private var isUploadingPhoto = false
+    @State private var isPhotosExpanded = false
+    @State private var photoError: String?
 
     // MARK: Validation
 
@@ -55,7 +65,28 @@ struct LineCheckItemRow: View {
                 notesSection
             }
 
+            photoArea
+
             observationsSection
+        }
+        .task(id: item.id) {
+            await loadPhotos()
+        }
+        .onChange(of: selectedPhotoItem) { _, newValue in
+            guard let newValue else { return }
+
+            Task {
+                await uploadSelectedPhoto(newValue)
+                selectedPhotoItem = nil
+            }
+        }
+        .fullScreenCover(isPresented: $isShowingCamera) {
+            ImagePicker(sourceType: .camera) { image in
+                Task {
+                    await uploadPhoto(image)
+                }
+            }
+            .ignoresSafeArea()
         }
         .padding(18)
         .background(
@@ -78,6 +109,14 @@ struct LineCheckItemRow: View {
         .animation(
             .easeInOut(duration: 0.2),
             value: item.isMissing
+        )
+        .animation(
+            .easeInOut(duration: 0.2),
+            value: isPhotosExpanded
+        )
+        .animation(
+            .easeInOut(duration: 0.2),
+            value: photos.isEmpty
         )
     }
 
@@ -515,6 +554,203 @@ struct LineCheckItemRow: View {
         )
     }
 
+    // MARK: Photos
+
+    private var hasPhotoRelevantIssue: Bool {
+        hasInvalidTemperature || isPreparedIncorrectly || item.isMissing
+    }
+
+    private var shouldShowPhotoControls: Bool {
+        hasPhotoRelevantIssue || isPhotosExpanded
+    }
+
+    private var shouldShowFullPhotoSection: Bool {
+        shouldShowPhotoControls || !photos.isEmpty || isLoadingPhotos || isUploadingPhoto || photoError != nil
+    }
+
+    @ViewBuilder
+    private var photoArea: some View {
+        if shouldShowFullPhotoSection {
+            photosSection
+        } else if !isReadOnly {
+            compactAddPhotoButton
+        }
+    }
+
+    private var compactAddPhotoButton: some View {
+        Button {
+            isPhotosExpanded = true
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "camera")
+                    .font(.subheadline.weight(.semibold))
+                    .symbolRenderingMode(.hierarchical)
+
+                Text("Add Photo")
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
+
+                Spacer()
+
+                Image(systemName: "chevron.down")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 14)
+            .frame(minHeight: 42)
+            .frame(maxWidth: .infinity)
+            .background(Color(.secondarySystemBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var photosSection: some View {
+
+        VStack(alignment: .leading, spacing: 14) {
+
+            HStack(spacing: 10) {
+
+                sectionHeader(
+                    title: "Photos",
+                    systemImage: "camera"
+                )
+
+                Spacer()
+
+                if isLoadingPhotos || isUploadingPhoto {
+                    ProgressView()
+                }
+
+                if !hasPhotoRelevantIssue && !isUploadingPhoto && !isReadOnly {
+                    Button {
+                        isPhotosExpanded.toggle()
+                    } label: {
+                        Image(systemName: isPhotosExpanded ? "chevron.up" : "camera.badge.plus")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            if shouldShowPhotoControls {
+                HStack(spacing: 12) {
+
+                    Button {
+                        isShowingCamera = true
+                    } label: {
+                        photoActionLabel(
+                            title: "Take Photo",
+                            systemImage: "camera.fill"
+                        )
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(
+                        isReadOnly ||
+                        isUploadingPhoto ||
+                        !UIImagePickerController.isSourceTypeAvailable(.camera)
+                    )
+
+                    PhotosPicker(
+                        selection: $selectedPhotoItem,
+                        matching: .images,
+                        photoLibrary: .shared()
+                    ) {
+                        photoActionLabel(
+                            title: "Choose Photo",
+                            systemImage: "photo.on.rectangle"
+                        )
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(isReadOnly || isUploadingPhoto)
+                }
+            }
+
+            if let photoError {
+                Text(photoError)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+            }
+
+            if photos.isEmpty && !isLoadingPhotos {
+                Text("No photos added")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        ForEach(photos) { photo in
+                            photoThumbnail(photo)
+                        }
+                    }
+                    .padding(.vertical, 2)
+                }
+            }
+        }
+        .padding(18)
+        .background(Color(.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+
+    private func photoActionLabel(
+        title: String,
+        systemImage: String
+    ) -> some View {
+        Label(title, systemImage: systemImage)
+            .font(.subheadline.weight(.semibold))
+            .lineLimit(1)
+            .minimumScaleFactor(0.82)
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .contentShape(Rectangle())
+    }
+
+    private func photoThumbnail(_ photo: LineCheckPhotoDto) -> some View {
+
+        Group {
+            if let urlString = photo.url,
+               let url = URL(string: urlString) {
+
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .empty:
+                        ProgressView()
+
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+
+                    case .failure:
+                        photoPlaceholder
+
+                    @unknown default:
+                        EmptyView()
+                    }
+                }
+            } else {
+                photoPlaceholder
+            }
+        }
+        .frame(width: 84, height: 84)
+        .background(Color(.systemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+        }
+    }
+
+    private var photoPlaceholder: some View {
+        Image(systemName: "photo")
+            .font(.title2)
+            .foregroundStyle(.secondary)
+    }
+
     // MARK: Observations
 
     private var observationsSection: some View {
@@ -570,6 +806,116 @@ struct LineCheckItemRow: View {
                 style: .continuous
             )
         )
+    }
+
+    // MARK: Photo Actions
+
+    private func loadPhotos() async {
+        guard let lineCheckItemId else { return }
+
+        isLoadingPhotos = true
+        photoError = nil
+
+        do {
+            photos = try await LineCheckPhotoApi.shared.getPhotos(
+                lineCheckItemId: lineCheckItemId
+            )
+        } catch {
+            photoError = error.localizedDescription
+        }
+
+        isLoadingPhotos = false
+    }
+
+    private func uploadSelectedPhoto(_ photoItem: PhotosPickerItem) async {
+        do {
+            guard let data = try await photoItem.loadTransferable(type: Data.self),
+                  let image = UIImage(data: data) else {
+                photoError = "Could not read selected image."
+                return
+            }
+
+            await uploadPhoto(image)
+        } catch {
+            photoError = error.localizedDescription
+        }
+    }
+
+    private func uploadPhoto(_ image: UIImage) async {
+        guard let lineCheckItemId else {
+            photoError = "Line check item is missing an ID."
+            return
+        }
+
+        guard let imageData = jpegData(from: image) else {
+            photoError = "Could not prepare image for upload."
+            return
+        }
+
+        isUploadingPhoto = true
+        photoError = nil
+
+        do {
+            _ = try await LineCheckPhotoApi.shared.uploadPhoto(
+                lineCheckItemId: lineCheckItemId,
+                imageData: imageData,
+                fileName: "line-check-\(lineCheckItemId)-\(UUID().uuidString).jpg",
+                photoType: .item,
+                notes: item.observations
+            )
+
+            photos = try await LineCheckPhotoApi.shared.getPhotos(
+                lineCheckItemId: lineCheckItemId
+            )
+        } catch {
+            photoError = error.localizedDescription
+        }
+
+        isUploadingPhoto = false
+    }
+
+    private func jpegData(from image: UIImage) -> Data? {
+        let maxDimension: CGFloat = 900
+        let maxUploadBytes = 600 * 1024
+        let size = image.size
+        let largestDimension = max(size.width, size.height)
+        let targetSize: CGSize
+
+        if largestDimension > maxDimension {
+            let scale = maxDimension / largestDimension
+            targetSize = CGSize(
+                width: size.width * scale,
+                height: size.height * scale
+            )
+        } else {
+            targetSize = size
+        }
+
+        let renderer = UIGraphicsImageRenderer(size: targetSize)
+        let resizedImage = renderer.image { _ in
+            image.draw(in: CGRect(origin: .zero, size: targetSize))
+        }
+
+        let compressionQualities: [CGFloat] = [0.72, 0.62, 0.52, 0.42, 0.32]
+        var smallestData: Data?
+
+        for quality in compressionQualities {
+            guard let data = resizedImage.jpegData(compressionQuality: quality) else {
+                continue
+            }
+
+            smallestData = data
+
+            if data.count <= maxUploadBytes {
+                return data
+            }
+        }
+
+        return smallestData
+    }
+
+    private var lineCheckItemId: String? {
+        item.item.id ?? item.id.uuidString
     }
 
     // MARK: Helpers
