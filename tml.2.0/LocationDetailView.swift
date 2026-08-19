@@ -1,4 +1,5 @@
 import SwiftUI
+import UserNotifications
 
 struct LocationDetailView: View {
 
@@ -9,10 +10,20 @@ struct LocationDetailView: View {
     @EnvironmentObject var sessionManager: SessionManager
     @EnvironmentObject var appSettings: AppSettings
 
+    @State private var correctiveLineCheckCount = 0
+
     var body: some View {
         content
             .navigationTitle("Dashboard")
             .navigationBarTitleDisplayMode(.inline)
+            .task {
+                await loadCorrectiveLineCheckCount()
+            }
+            .onAppear {
+                Task {
+                    await loadCorrectiveLineCheckCount()
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     ProfileMenuView()
@@ -75,6 +86,22 @@ private extension LocationDetailView {
             }
             .buttonStyle(.plain)
 
+            NavigationLink {
+                LineCheckReconcileView(
+                    locationId: locationId,
+                    locationName: locationName,
+                    accountName: account.name
+                )
+            } label: {
+                DashboardActionCard(
+                    title: "Corrective Actions Needed",
+                    subtitle: "Review line checks that need follow-up",
+                    systemImage: "exclamationmark.triangle",
+                    badgeCount: correctiveLineCheckCount
+                )
+            }
+            .buttonStyle(.plain)
+
             if appSettings.canViewLineCheckHistory {
                 NavigationLink {
                     LineCheckHistoryView(
@@ -92,6 +119,97 @@ private extension LocationDetailView {
                 .buttonStyle(.plain)
             }
         }
+    }
+
+    func loadCorrectiveLineCheckCount() async {
+        do {
+            let lineChecks = try await LineCheckApi.shared.getCompletedLineChecksByLocation(
+                locationId: locationId
+            )
+
+            correctiveLineCheckCount = await unresolvedLineCheckCount(in: lineChecks)
+            await updateAppIconBadge(correctiveLineCheckCount)
+        } catch {
+            correctiveLineCheckCount = 0
+            await updateAppIconBadge(0)
+        }
+    }
+
+    func updateAppIconBadge(_ count: Int) async {
+        let center = UNUserNotificationCenter.current()
+
+        do {
+            let granted = try await center.requestAuthorization(options: [.badge])
+            guard granted else { return }
+
+            try await center.setBadgeCount(count)
+        } catch {
+            // Badge updates should not block dashboard use.
+        }
+    }
+
+    func unresolvedLineCheckCount(in lineChecks: [LineCheckDto]) async -> Int {
+        var count = 0
+
+        for lineCheck in lineChecks {
+            if await hasUnresolvedIssues(in: lineCheck) {
+                count += 1
+            }
+        }
+
+        return count
+    }
+
+    func hasUnresolvedIssues(in lineCheck: LineCheckDto) async -> Bool {
+        for station in lineCheck.stations {
+            for item in station.items where hasCorrectionIssue(item) {
+                guard item.isCorrected != true else {
+                    continue
+                }
+
+                if await hasCorrectivePhoto(for: item.id) == false {
+                    return true
+                }
+            }
+        }
+
+        return false
+    }
+
+    func hasCorrectivePhoto(for itemId: String?) async -> Bool {
+        guard let itemId else { return false }
+
+        do {
+            let photos = try await LineCheckPhotoApi.shared.getPhotos(lineCheckItemId: itemId)
+            return photos.contains { $0.photoType == .corrective }
+        } catch {
+            return false
+        }
+    }
+
+    func hasCorrectionIssue(_ item: LineCheckItemDto) -> Bool {
+        item.isMissing == true ||
+        isOutOfTemperatureRange(item) ||
+        hasIncorrectPrep(item)
+    }
+
+    func isOutOfTemperatureRange(_ item: LineCheckItemDto) -> Bool {
+        guard let temperature = item.temperature else { return false }
+
+        if let minTemp = item.minTemp, temperature < minTemp {
+            return true
+        }
+
+        if let maxTemp = item.maxTemp, temperature > maxTemp {
+            return true
+        }
+
+        return false
+    }
+
+    func hasIncorrectPrep(_ item: LineCheckItemDto) -> Bool {
+        guard item.checkMark else { return false }
+        return item.itemChecked == false
     }
 
     var accountImage: some View {
@@ -119,6 +237,7 @@ private struct DashboardActionCard: View {
     let title: String
     let subtitle: String
     let systemImage: String
+    var badgeCount: Int = 0
 
     var body: some View {
         HStack(spacing: 14) {
@@ -138,6 +257,18 @@ private struct DashboardActionCard: View {
             }
 
             Spacer()
+
+            if badgeCount > 0 {
+                Text("\(badgeCount)")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.white)
+                    .monospacedDigit()
+                    .frame(minWidth: 24, minHeight: 24)
+                    .padding(.horizontal, badgeCount > 9 ? 4 : 0)
+                    .background(Color.red)
+                    .clipShape(Capsule())
+                    .accessibilityLabel("\(badgeCount) line checks need corrective action")
+            }
 
             Image(systemName: "arrow.right")
                 .font(.footnote.weight(.semibold))

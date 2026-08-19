@@ -14,13 +14,16 @@ struct LineCheckPhotoDto: Identifiable, Codable, Equatable {
 
 enum LineCheckPhotoType: String, Codable, CaseIterable, Identifiable {
     case item = "BEFORE"
+    case corrective = "CORRECTIVE"
 
     var id: String { rawValue }
 
     var label: String {
         switch self {
         case .item:
-            return "Item"
+            return "Before"
+        case .corrective:
+            return "Corrective"
         }
     }
 }
