@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		3D15087E30361EF30021DBF2 /* String+URLPathSegment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D15087D30361EF30021DBF2 /* String+URLPathSegment.swift */; };
+		3D150880303646CB0021DBF2 /* LineCheckReconcileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D15087F303646CB0021DBF2 /* LineCheckReconcileView.swift */; };
 		3D3AD24B2F4E2CE2005F14E5 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 3D3AD24A2F4E2CE2005F14E5 /* GoogleSignIn */; };
 		3D3AD24D2F4E2CE2005F14E5 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 3D3AD24C2F4E2CE2005F14E5 /* GoogleSignInSwift */; };
 		3D54417E2FAB46AD00DC73D9 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3D5441702FAB46AD00DC73D9 /* GoogleService-Info.plist */; };
@@ -70,6 +71,7 @@
 
 /* Begin PBXFileReference section */
 		3D15087D30361EF30021DBF2 /* String+URLPathSegment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "String+URLPathSegment.swift"; sourceTree = "<group>"; };
+		3D15087F303646CB0021DBF2 /* LineCheckReconcileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineCheckReconcileView.swift; sourceTree = "<group>"; };
 		3D3AD2372F4E2B9C005F14E5 /* tml.2.0.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = tml.2.0.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3D54414A2FAB46AD00DC73D9 /* AccountApi.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountApi.swift; sourceTree = "<group>"; };
 		3D54414B2FAB46AD00DC73D9 /* AnyEncodable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnyEncodable.swift; sourceTree = "<group>"; };
@@ -277,6 +279,7 @@
 				3D934E412FB4ADBB00DC81AA /* autoLogOut */,
 				3D934E3D2FB4A7AD00DC81AA /* SplashView.swift */,
 				F78E44C330328A2400BF7CD1 /* LineCheckHistoryView.swift */,
+				3D15087F303646CB0021DBF2 /* LineCheckReconcileView.swift */,
 			);
 			path = tml.2.0;
 			sourceTree = "<group>";
@@ -394,6 +397,7 @@
 				3D5441952FAB46AD00DC73D9 /* Station.swift in Sources */,
 				3D61F0183036187300E05ED5 /* LineCheckPhotoApi.swift in Sources */,
 				3D5441962FAB46AD00DC73D9 /* LineCheckStationInput.swift in Sources */,
+				3D150880303646CB0021DBF2 /* LineCheckReconcileView.swift in Sources */,
 				3D5441972FAB46AD00DC73D9 /* CreateLineCheckRequest.swift in Sources */,
 				3D5441982FAB46AD00DC73D9 /* StationChip.swift in Sources */,
 				3D934E402FB4ACD500DC81AA /* AutoLogoutInterval.swift in Sources */,

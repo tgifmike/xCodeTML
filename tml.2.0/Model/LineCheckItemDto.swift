@@ -19,5 +19,6 @@ struct LineCheckItemDto: Identifiable, Codable, Equatable {
     let maxTemp: Float?
     var observations: String?
     var isMissing: Bool?
+    var isCorrected: Bool?
     var sortOrder: Int? = 0
 }
