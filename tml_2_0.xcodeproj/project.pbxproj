@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		3D15087E30361EF30021DBF2 /* String+URLPathSegment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D15087D30361EF30021DBF2 /* String+URLPathSegment.swift */; };
 		3D3AD24B2F4E2CE2005F14E5 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 3D3AD24A2F4E2CE2005F14E5 /* GoogleSignIn */; };
 		3D3AD24D2F4E2CE2005F14E5 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 3D3AD24C2F4E2CE2005F14E5 /* GoogleSignInSwift */; };
 		3D54417E2FAB46AD00DC73D9 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3D5441702FAB46AD00DC73D9 /* GoogleService-Info.plist */; };
@@ -53,6 +54,9 @@
 		3D5441A72FAB46AD00DC73D9 /* LocationApi.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D5441502FAB46AD00DC73D9 /* LocationApi.swift */; };
 		3D5441A82FAB46AD00DC73D9 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D5441762FAB46AD00DC73D9 /* LoginView.swift */; };
 		3D5441A92FAB46AD00DC73D9 /* AccountPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D54416E2FAB46AD00DC73D9 /* AccountPickerView.swift */; };
+		3D61F0163036186B00E05ED5 /* LineCheckPhotoDto.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D61F0153036186B00E05ED5 /* LineCheckPhotoDto.swift */; };
+		3D61F0183036187300E05ED5 /* LineCheckPhotoApi.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D61F0173036187300E05ED5 /* LineCheckPhotoApi.swift */; };
+		3D61F01A303618BA00E05ED5 /* ImagePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D61F019303618BA00E05ED5 /* ImagePicker.swift */; };
 		3D934E312FABB07100DC81AA /* LineCheckItemRowVM.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D934E302FABB06A00DC81AA /* LineCheckItemRowVM.swift */; };
 		3D934E362FABB19500DC81AA /* LineCheckStationVM.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D934E352FABB19100DC81AA /* LineCheckStationVM.swift */; };
 		3D934E382FABD12500DC81AA /* LineCheckItemState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D934E372FABD11A00DC81AA /* LineCheckItemState.swift */; };
@@ -65,6 +69,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		3D15087D30361EF30021DBF2 /* String+URLPathSegment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "String+URLPathSegment.swift"; sourceTree = "<group>"; };
 		3D3AD2372F4E2B9C005F14E5 /* tml.2.0.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = tml.2.0.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3D54414A2FAB46AD00DC73D9 /* AccountApi.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountApi.swift; sourceTree = "<group>"; };
 		3D54414B2FAB46AD00DC73D9 /* AnyEncodable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnyEncodable.swift; sourceTree = "<group>"; };
@@ -111,6 +116,9 @@
 		3D54417A2FAB46AD00DC73D9 /* tml_2_0App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = tml_2_0App.swift; sourceTree = "<group>"; };
 		3D54417B2FAB46AD00DC73D9 /* tml.2.0.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = tml.2.0.entitlements; sourceTree = "<group>"; };
 		3D54417C2FAB46AD00DC73D9 /* UserProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfileView.swift; sourceTree = "<group>"; };
+		3D61F0153036186B00E05ED5 /* LineCheckPhotoDto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineCheckPhotoDto.swift; sourceTree = "<group>"; };
+		3D61F0173036187300E05ED5 /* LineCheckPhotoApi.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineCheckPhotoApi.swift; sourceTree = "<group>"; };
+		3D61F019303618BA00E05ED5 /* ImagePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePicker.swift; sourceTree = "<group>"; };
 		3D934E302FABB06A00DC81AA /* LineCheckItemRowVM.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineCheckItemRowVM.swift; sourceTree = "<group>"; };
 		3D934E352FABB19100DC81AA /* LineCheckStationVM.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineCheckStationVM.swift; sourceTree = "<group>"; };
 		3D934E372FABD11A00DC81AA /* LineCheckItemState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineCheckItemState.swift; sourceTree = "<group>"; };
@@ -171,6 +179,8 @@
 				3D5441502FAB46AD00DC73D9 /* LocationApi.swift */,
 				3D5441512FAB46AD00DC73D9 /* StationApi.swift */,
 				3D5441522FAB46AD00DC73D9 /* UserApi.swift */,
+				3D61F0173036187300E05ED5 /* LineCheckPhotoApi.swift */,
+				3D15087D30361EF30021DBF2 /* String+URLPathSegment.swift */,
 			);
 			path = API;
 			sourceTree = "<group>";
@@ -220,6 +230,7 @@
 				3D5441662FAB46AD00DC73D9 /* Session.swift */,
 				3D5441672FAB46AD00DC73D9 /* Station.swift */,
 				3D5441682FAB46AD00DC73D9 /* StationChip.swift */,
+				3D61F0153036186B00E05ED5 /* LineCheckPhotoDto.swift */,
 			);
 			path = Model;
 			sourceTree = "<group>";
@@ -229,6 +240,7 @@
 			children = (
 				3D54416A2FAB46AD00DC73D9 /* CheckBoxRow.swift */,
 				3D54416B2FAB46AD00DC73D9 /* CustomAlertView.swift */,
+				3D61F019303618BA00E05ED5 /* ImagePicker.swift */,
 			);
 			path = UI;
 			sourceTree = "<group>";
@@ -352,10 +364,12 @@
 			files = (
 				3D5441802FAB46AD00DC73D9 /* StationApi.swift in Sources */,
 				3D5441812FAB46AD00DC73D9 /* UserApi.swift in Sources */,
+				3D61F0163036186B00E05ED5 /* LineCheckPhotoDto.swift in Sources */,
 				3D5441822FAB46AD00DC73D9 /* UserProfileView.swift in Sources */,
 				3D5441832FAB46AD00DC73D9 /* tml_2_0App.swift in Sources */,
 				3D5441842FAB46AD00DC73D9 /* Account.swift in Sources */,
 				3D5441852FAB46AD00DC73D9 /* CheckBoxRow.swift in Sources */,
+				3D61F01A303618BA00E05ED5 /* ImagePicker.swift in Sources */,
 				3D5441862FAB46AD00DC73D9 /* AccountApi.swift in Sources */,
 				3D5441872FAB46AD00DC73D9 /* Config.swift in Sources */,
 				3D934E382FABD12500DC81AA /* LineCheckItemState.swift in Sources */,
@@ -367,6 +381,7 @@
 				3D54418B2FAB46AD00DC73D9 /* Endpoint.swift in Sources */,
 				3D54418C2FAB46AD00DC73D9 /* AccountDetailView.swift in Sources */,
 				3D54418D2FAB46AD00DC73D9 /* LocationDetailView.swift in Sources */,
+				3D15087E30361EF30021DBF2 /* String+URLPathSegment.swift in Sources */,
 				3D934E3E2FB4A7BA00DC81AA /* SplashView.swift in Sources */,
 				3D54418E2FAB46AD00DC73D9 /* LineCheckDetailView.swift in Sources */,
 				3D54418F2FAB46AD00DC73D9 /* Session.swift in Sources */,
@@ -377,6 +392,7 @@
 				F78E44C430328A2400BF7CD1 /* LineCheckHistoryView.swift in Sources */,
 				3D5441942FAB46AD00DC73D9 /* AnyEncodable.swift in Sources */,
 				3D5441952FAB46AD00DC73D9 /* Station.swift in Sources */,
+				3D61F0183036187300E05ED5 /* LineCheckPhotoApi.swift in Sources */,
 				3D5441962FAB46AD00DC73D9 /* LineCheckStationInput.swift in Sources */,
 				3D5441972FAB46AD00DC73D9 /* CreateLineCheckRequest.swift in Sources */,
 				3D5441982FAB46AD00DC73D9 /* StationChip.swift in Sources */,
@@ -545,6 +561,7 @@
 				INFOPLIST_FILE = "tml-2-0-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "The Manager Life";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Allow TML to take photos for line checks";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -582,6 +599,7 @@
 				INFOPLIST_FILE = "tml-2-0-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "The Manager Life";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Allow TML to take photos for line checks";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

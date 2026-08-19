@@ -107,13 +107,13 @@ struct SplashView: View {
 
                 VStack(spacing: 10) {
 
-                    Text("Line Check")
-                        .font(.system(size: 34, weight: .bold))
+                    Text("Loading Operations & Readiness Line Check. . .")
+                        .font(.system(size: 28, weight: .bold))
                         .foregroundStyle(.white)
 
-                    Text("Operations & Shift Readiness")
-                        .font(.subheadline)
-                        .foregroundStyle(.white.opacity(0.65))
+//                    Text("Loading Operations & Readiness Line Check")
+//                        .font(.subheadline)
+//                        .foregroundStyle(.white.opacity(0.65))
                 }
 
                 // MARK: Loading Indicator
