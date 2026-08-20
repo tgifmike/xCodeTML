@@ -553,8 +553,7 @@ private struct ReconcileIssue: Identifiable, Equatable {
     }
 
     private static func hasIncorrectPrep(_ item: LineCheckItemDto) -> Bool {
-        guard item.checkMark else { return false }
-        return item.itemChecked == false
+        item.itemChecked == false
     }
 }
 

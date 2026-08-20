@@ -9,6 +9,7 @@ struct LocationStationsView: View {
     let account: Account
 
     @EnvironmentObject var sessionManager: SessionManager
+    @Environment(\.dismiss) private var dismiss
 
     @State private var stations: [Station] = []
     @State private var selectedStations: Set<String> = []
@@ -28,7 +29,15 @@ struct LocationStationsView: View {
                     lineCheckId: id,
                     locationId: locationId,
                     locationName: locationName,
-                    accountName: account.name
+                    accountName: account.name,
+                    onComplete: {
+                        createdLineCheckId = nil
+
+                        Task { @MainActor in
+                            try? await Task.sleep(nanoseconds: 150_000_000)
+                            dismiss()
+                        }
+                    }
                 )
             }
             .toolbar {

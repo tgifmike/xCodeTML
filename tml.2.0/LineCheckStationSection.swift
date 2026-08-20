@@ -15,12 +15,8 @@ struct LineCheckStationSection: View {
 
     private var completedItems: Int {
 
-        items.filter {
-            $0.isMissing ||
-            !$0.temperature.isEmpty ||
-            $0.isChecked != nil
-        }
-        .count
+        items.filter(isItemComplete)
+            .count
     }
 
     private var totalItems: Int {
@@ -51,6 +47,18 @@ struct LineCheckStationSection: View {
         }
 
         return .red
+    }
+
+    private func isItemComplete(_ item: LineCheckItemState) -> Bool {
+        if item.isMissing {
+            return true
+        }
+
+        if item.item.tempTaken {
+            return !item.temperature.isEmpty && item.isChecked != nil
+        }
+
+        return item.isChecked != nil
     }
 
     // MARK: BODY

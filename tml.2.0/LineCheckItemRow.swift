@@ -177,8 +177,6 @@ struct LineCheckItemRow: View {
                         compactValidationCard
                             .frame(maxWidth: .infinity)
                     }
-
-                    missingCard
                 }
 
             } else {
@@ -187,8 +185,6 @@ struct LineCheckItemRow: View {
 
                     detailsCard
                     compactValidationCard
-                    missingCard
-//                    missingToggle
                 }
             }
         }
@@ -259,49 +255,13 @@ struct LineCheckItemRow: View {
                 temperatureSection
             }
 
-            if item.item.checkMark {
-                preparedCorrectlySection
-            }
+            preparedCorrectlySection
+
+            missingToggle
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
         .padding(16)
         .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-    }
-    
-    //MARK: missing card
-    private var missingCard: some View {
-
-        VStack(alignment: .leading, spacing: 14) {
-
-            sectionHeader(
-                title: "Item Missing",
-                systemImage: "exclamationmark.triangle"
-            )
-
-            VStack(alignment: .leading, spacing: 12) {
-
-                Toggle("Mark Item Missing", isOn: $item.isMissing)
-                    .tint(.red)
-                    .disabled(isReadOnly)
-                    .onChange(of: item.isMissing) { _, newValue in
-
-                        if newValue {
-                            item.temperature = ""
-                            item.isChecked = nil
-                            item.observations = ""
-                            focusedField = nil
-                            onFinalizeAction()
-                        }
-                    }
-            }
-        }
-        .padding(16)
-        .background(
-            item.isMissing
-            ? Color.red.opacity(0.12)
-            : Color(.secondarySystemBackground)
-        )
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 
@@ -418,69 +378,69 @@ struct LineCheckItemRow: View {
 
     // MARK: Prepared Correctly
 
-    @ViewBuilder
     private var preparedCorrectlySection: some View {
 
-        if item.item.checkMark {
+        VStack(alignment: .leading, spacing: 14) {
 
-            VStack(alignment: .leading, spacing: 14) {
+            fieldLabel(
+                title: "Prepared Correctly",
+                systemImage: "checklist"
+            )
 
-                fieldLabel(
-                    title: "Prepared Correctly",
-                    systemImage: "checklist"
-                )
+            HStack(spacing: 12) {
 
-                HStack(spacing: 12) {
+                Button {
 
-                    Button {
+                    item.isChecked = true
+                    onFinalizeAction()
 
-                        item.isChecked = true
-                        onFinalizeAction()
+                } label: {
 
-                    } label: {
-
-                        Label("Yes", systemImage: "checkmark")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(
-                        item.isChecked == true
-                        ? .green
-                        : .gray.opacity(0.35)
-                    )
-
-                    Button {
-
-                        item.isChecked = false
-                        onFinalizeAction()
-
-                    } label: {
-
-                        Label("No", systemImage: "xmark")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(
-                        item.isChecked == false
-                        ? .red
-                        : .gray
-                    )
+                    Label("Yes", systemImage: "checkmark")
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.82)
+                        .frame(maxWidth: .infinity)
                 }
-            }
-            .padding(14)
-            .background(
-                isPreparedIncorrectly
-                ? Color.red.opacity(0.08)
-                : Color.clear
-            )
-            .clipShape(
-                RoundedRectangle(
-                    cornerRadius: 16,
-                    style: .continuous
+                .buttonStyle(.borderedProminent)
+                .tint(
+                    item.isChecked == true
+                    ? .green
+                    : .gray.opacity(0.35)
                 )
-            )
-            .disabled(isReadOnly || item.isMissing)
+
+                Button {
+
+                    item.isChecked = false
+                    onFinalizeAction()
+
+                } label: {
+
+                    Label("No", systemImage: "xmark")
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.82)
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .tint(
+                    item.isChecked == false
+                    ? .red
+                    : .gray
+                )
+            }
         }
+        .padding(14)
+        .background(
+            isPreparedIncorrectly
+            ? Color.red.opacity(0.08)
+            : Color.clear
+        )
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius: 16,
+                style: .continuous
+            )
+        )
+        .disabled(isReadOnly || item.isMissing)
     }
 
     // MARK: Missing Toggle

@@ -42,7 +42,7 @@ final class LineCheckItemRowVM: ObservableObject, Identifiable {
     }
 
     var requiresCheckmark: Bool {
-        item.checkMark
+        true
     }
 
     var isComplete: Bool {
@@ -52,14 +52,10 @@ final class LineCheckItemRowVM: ObservableObject, Identifiable {
         }
 
         if requiresTemperature {
-            return !temperature.isEmpty
+            return !temperature.isEmpty && isChecked != nil
         }
 
-        if requiresCheckmark {
-            return isChecked != nil
-        }
-
-        return true
+        return isChecked != nil
     }
 
     // MARK: Validation Helpers

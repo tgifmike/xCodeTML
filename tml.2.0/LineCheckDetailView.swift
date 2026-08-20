@@ -7,19 +7,22 @@ struct LineCheckDetailView: View {
     let locationName: String
     let accountName: String
     let isReadOnly: Bool
+    let onComplete: (() -> Void)?
 
     init(
         lineCheckId: String,
         locationId: String,
         locationName: String,
         accountName: String,
-        isReadOnly: Bool = false
+        isReadOnly: Bool = false,
+        onComplete: (() -> Void)? = nil
     ) {
         self.lineCheckId = lineCheckId
         self.locationId = locationId
         self.locationName = locationName
         self.accountName = accountName
         self.isReadOnly = isReadOnly
+        self.onComplete = onComplete
     }
 
     @StateObject private var vm = LineCheckDetailVM()
@@ -375,8 +378,12 @@ struct LineCheckDetailView: View {
             Task {
                 await vm.save(current: vm.lineCheck)
                 
-                if(vm.saveSuccess){
-                    dismiss()
+                if vm.saveSuccess {
+                    if let onComplete {
+                        onComplete()
+                    } else {
+                        dismiss()
+                    }
                 }
             }
 
