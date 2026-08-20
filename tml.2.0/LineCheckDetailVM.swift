@@ -36,11 +36,7 @@ final class LineCheckDetailVM: ObservableObject {
     }
 
     var completedItems: Int {
-        items.filter {
-            $0.isMissing ||
-            !$0.temperature.isEmpty ||
-            $0.isChecked != nil
-        }.count
+        items.filter(isItemComplete).count
     }
 
     var progress: Double {
@@ -58,6 +54,34 @@ final class LineCheckDetailVM: ObservableObject {
         items != originalItems
     }
 
+    private func isItemComplete(_ item: LineCheckItemState) -> Bool {
+        if item.isMissing {
+            return true
+        }
+
+        if item.item.tempTaken {
+            return !item.temperature.isEmpty && item.isChecked != nil
+        }
+
+        return item.isChecked != nil
+    }
+
+    private func normalizedPrepState(
+        _ value: Bool?,
+        isOpenLineCheck: Bool,
+        temperature: String,
+        observations: String,
+        isMissing: Bool
+    ) -> Bool? {
+        let hasUserEntry = !temperature.isEmpty || !observations.isEmpty || isMissing
+
+        if isOpenLineCheck && value == false && !hasUserEntry {
+            return nil
+        }
+
+        return value
+    }
+
     // MARK: LOAD
 
     func load(lineCheckId: String) async {
@@ -67,17 +91,30 @@ final class LineCheckDetailVM: ObservableObject {
         do {
             let response = try await LineCheckApi.shared.getLineCheckById(lineCheckId: lineCheckId)
 
+            let isOpenLineCheck = response.completedAt == nil
+
             let flat: [LineCheckItemState] = response.stations.flatMap { station in
                 station.items.map { item in
-                    LineCheckItemState(
+                    let temperature = item.temperature.map { "\($0)" } ?? ""
+                    let observations = item.observations ?? ""
+                    let isMissing = item.isMissing ?? false
+                    let isChecked = normalizedPrepState(
+                        item.itemChecked,
+                        isOpenLineCheck: isOpenLineCheck,
+                        temperature: temperature,
+                        observations: observations,
+                        isMissing: isMissing
+                    )
+
+                    return LineCheckItemState(
                         id: UUID(uuidString: item.id ?? "") ?? UUID(),
                         stationId: UUID(uuidString: station.id) ?? UUID(),
                         stationName: station.stationName ?? "Unnamed",
                         item: item,
-                        temperature: item.temperature.map { "\($0)" } ?? "",
-                        observations: item.observations ?? "",
-                        isChecked: nil,
-                        isMissing: item.isMissing ?? false
+                        temperature: temperature,
+                        observations: observations,
+                        isChecked: isChecked,
+                        isMissing: isMissing
                     )
                 }
             }
@@ -117,13 +154,11 @@ final class LineCheckDetailVM: ObservableObject {
                             dto.temperature = nil
                             dto.itemChecked = nil
 
-                        } else if item.item.tempTaken {
-                            dto.temperature = item.temperature.isEmpty ? nil : Float(item.temperature)
-                            dto.itemChecked = nil
-
                         } else {
+                            dto.temperature = item.item.tempTaken && !item.temperature.isEmpty
+                            ? Float(item.temperature)
+                            : nil
                             dto.itemChecked = item.isChecked
-                            dto.temperature = nil
                         }
 
                         dto.observations = item.observations

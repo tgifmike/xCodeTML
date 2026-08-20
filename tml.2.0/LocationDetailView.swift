@@ -208,8 +208,7 @@ private extension LocationDetailView {
     }
 
     func hasIncorrectPrep(_ item: LineCheckItemDto) -> Bool {
-        guard item.checkMark else { return false }
-        return item.itemChecked == false
+        item.itemChecked == false
     }
 
     var accountImage: some View {
