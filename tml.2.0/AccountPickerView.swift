@@ -15,6 +15,7 @@ struct AccountPickerView: View {
     @State private var accounts: [Account] = []
     @State private var isLoading = false
     @State private var hasLoaded = false
+    @State private var errorMessage: String?
     
 
     var body: some View {
@@ -47,6 +48,10 @@ private extension AccountPickerView {
             if isLoading {
                 ProgressView("Loading accounts...")
                     .frame(maxWidth: .infinity, alignment: .center)
+            }
+
+            else if let errorMessage {
+                errorState(errorMessage)
             }
 
             else if hasLoaded && accounts.isEmpty {
@@ -111,12 +116,48 @@ private extension AccountPickerView {
 private extension AccountPickerView {
 
     var emptyState: some View {
-        Text("No accounts are assigned to this user.\nPlease configure them in the web dashboard.")
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
-            .multilineTextAlignment(.center)
-            .frame(maxWidth: .infinity, alignment: .center)
-            .padding(.top, 40)
+        VStack(spacing: 12) {
+            Text("No accounts are assigned to this user.\nPlease configure them in the web dashboard.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+
+            #if DEBUG
+            debugContext
+            #endif
+        }
+        .frame(maxWidth: .infinity, alignment: .center)
+        .padding(.top, 40)
+    }
+
+    func errorState(_ message: String) -> some View {
+        VStack(spacing: 12) {
+            Text("Could not load accounts.")
+                .font(.headline)
+
+            Text(message)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+
+            #if DEBUG
+            debugContext
+            #endif
+        }
+        .frame(maxWidth: .infinity, alignment: .center)
+        .padding(.top, 40)
+    }
+
+    var debugContext: some View {
+        VStack(spacing: 4) {
+            Text("Debug API: \(Config.baseURL)")
+            Text("Email: \(sessionManager.session?.email ?? "-")")
+            Text("User ID: \(sessionManager.session?.userId ?? "-")")
+        }
+        .font(.caption2)
+        .foregroundStyle(.tertiary)
+        .multilineTextAlignment(.center)
+        .textSelection(.enabled)
     }
 }
 
@@ -162,12 +203,14 @@ private extension AccountPickerView {
         
         isLoading = true
         hasLoaded = false
+        errorMessage = nil
 
         do {
             accounts = try await AccountApi.shared.getAccountsForUser(userId: userId)
         } catch {
             print("❌ Accounts error:", error)
             accounts = []
+            errorMessage = error.localizedDescription
         }
 
         isLoading = false

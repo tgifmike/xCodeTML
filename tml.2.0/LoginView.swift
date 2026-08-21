@@ -208,7 +208,7 @@ extension LoginView {
             sendTokenToBackend(
                 idToken: idToken,
                 provider: "google",
-                endpoint: "https://app-javabackend-5e1ae1d5056c.herokuapp.com/users/oauth-login"
+                endpoint: "\(Config.baseURL)/users/oauth-login"
             )
         }
     }
@@ -246,7 +246,7 @@ extension LoginView {
             sendTokenToBackend(
                 idToken: tokenString,
                 provider: "apple",
-                endpoint: "https://app-javabackend-5e1ae1d5056c.herokuapp.com/users/oauth-login"
+                endpoint: "\(Config.baseURL)/users/oauth-login"
             )
 
 
@@ -448,10 +448,7 @@ extension LoginView {
 
     func loginDemoUser() {
 
-        guard let url =
-                URL(string:
-                        "https://app-javabackend-5e1ae1d5056c.herokuapp.com/users/demo-login")
-        else { return }
+        guard let url = URL(string: "\(Config.baseURL)/users/demo-login") else { return }
 
         var request = URLRequest(url: url)
 
