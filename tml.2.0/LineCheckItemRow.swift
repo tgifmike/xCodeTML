@@ -19,6 +19,7 @@ struct LineCheckItemRow: View {
     @State private var isLoadingPhotos = false
     @State private var isUploadingPhoto = false
     @State private var isPhotosExpanded = false
+    @State private var activeCriterionPhotoResponseId: String?
     @State private var photoError: String?
 
     // MARK: Validation
@@ -51,11 +52,38 @@ struct LineCheckItemRow: View {
         item.isChecked == false
     }
 
+    private var rowSpacing: CGFloat {
+        horizontalSizeClass == .compact ? 12 : 16
+    }
+
+    private var sectionSpacing: CGFloat {
+        horizontalSizeClass == .compact ? 12 : 18
+    }
+
+    private var rowPadding: CGFloat {
+        horizontalSizeClass == .compact ? 14 : 18
+    }
+
+    private var cardPadding: CGFloat {
+        horizontalSizeClass == .compact ? 14 : 18
+    }
+
+    private var detailColumns: [GridItem] {
+        if horizontalSizeClass == .compact {
+            return [GridItem(.flexible(), alignment: .leading)]
+        }
+
+        return [
+            GridItem(.flexible(), alignment: .leading),
+            GridItem(.flexible(), alignment: .leading)
+        ]
+    }
+
     // MARK: Body
 
     var body: some View {
 
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: rowSpacing) {
 
             headerSection
 
@@ -88,7 +116,7 @@ struct LineCheckItemRow: View {
             }
             .ignoresSafeArea()
         }
-        .padding(18)
+        .padding(rowPadding)
         .background(
             Color(.systemBackground)
         )
@@ -167,23 +195,22 @@ struct LineCheckItemRow: View {
 
             if horizontalSizeClass == .regular {
 
-                VStack(spacing: 18) {
+                VStack(spacing: sectionSpacing) {
 
-                    HStack(alignment: .top, spacing: 18) {
-
+                    if shouldShowDetailsCard {
                         detailsCard
-                            .frame(maxWidth: .infinity)
-
-                        compactValidationCard
-                            .frame(maxWidth: .infinity)
                     }
+
+                    compactValidationCard
                 }
 
             } else {
 
-                VStack(spacing: 18) {
+                VStack(spacing: sectionSpacing) {
 
-                    detailsCard
+                    if shouldShowDetailsCard {
+                        detailsCard
+                    }
                     compactValidationCard
                 }
             }
@@ -193,14 +220,18 @@ struct LineCheckItemRow: View {
 
     private var detailsCard: some View {
 
-        VStack(alignment: .leading, spacing: 20) {
+        VStack(alignment: .leading, spacing: 12) {
 
             sectionHeader(
                 title: "Details",
                 systemImage: "info.circle"
             )
 
-            VStack(spacing: 14) {
+            LazyVGrid(
+                columns: detailColumns,
+                alignment: .leading,
+                spacing: 10
+            ) {
 
                 metadataRow(
                     icon: "clock",
@@ -228,7 +259,7 @@ struct LineCheckItemRow: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
-        .padding(18)
+        .padding(cardPadding)
         .background(
             Color(.secondarySystemBackground)
         )
@@ -251,18 +282,416 @@ struct LineCheckItemRow: View {
                 systemImage: "checkmark.shield"
             )
 
-            if item.item.tempTaken {
-                temperatureSection
+            if hasDynamicCriteria {
+                dynamicCriteriaSection
+            } else {
+                legacyValidationSection
             }
-
-            preparedCorrectlySection
-
-            missingToggle
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
         .padding(16)
         .background(Color(.secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+
+    private var hasDynamicCriteria: Bool {
+        !(item.item.criterionResponses?.isEmpty ?? true)
+    }
+
+    private var legacyValidationSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            if item.item.tempTaken {
+                temperatureSection
+            }
+
+            preparedCorrectlySection
+            missingToggle
+        }
+    }
+
+    private var dynamicCriteriaSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            if item.item.tempTaken && !hasTemperatureCriterion {
+                temperatureSection
+            }
+
+            ForEach(Array((item.item.criterionResponses ?? []).indices), id: \.self) { index in
+                criterionResponseSection(index: index)
+            }
+
+            if !hasMissingCriterion {
+                missingToggle
+            }
+        }
+    }
+
+    private var hasTemperatureCriterion: Bool {
+        (item.item.criterionResponses ?? []).contains { response in
+            isTemperatureCriterion(response)
+        }
+    }
+
+    private var hasMissingCriterion: Bool {
+        (item.item.criterionResponses ?? []).contains { response in
+            isMissingCriterion(response)
+        }
+    }
+
+    @ViewBuilder
+    private func criterionResponseSection(index: Int) -> some View {
+        if let response = item.item.criterionResponses?[index] {
+            let label = criterionLabel(for: response)
+
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 6) {
+                    fieldLabel(title: label, systemImage: criterionIcon(for: response))
+
+                    if response.required == true {
+                        Text("Required")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(Color.primary.opacity(0.06))
+                            .clipShape(Capsule())
+                    }
+                }
+
+                if isMissingCriterion(response) {
+                    criterionMissingInput(index: index, response: response)
+                } else if isTemperatureCriterion(response) || isNumberCriterion(response) {
+                    criterionNumberInput(index: index, response: response)
+                } else if isBooleanCriterion(response) || isPreparedCorrectlyCriterion(response) || isMissingCriterion(response) {
+                    criterionBooleanInput(index: index, response: response)
+                } else if isPhotoCriterion(response) {
+                    criterionPhotoInput(index: index, response: response)
+                } else {
+                    criterionTextInput(index: index, response: response)
+                }
+
+                if response.requiresCorrection == true {
+                    Text("Follow-up required")
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                }
+            }
+            .padding(14)
+            .background(criterionBackground(for: response))
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .disabled(isReadOnly || (item.isMissing && !isMissingCriterion(response)))
+        }
+    }
+
+    private func criterionMissingInput(index: Int, response: LineCheckCriterionResponseDto) -> some View {
+        Toggle("Mark Item Missing", isOn: Binding(
+            get: { item.isMissing },
+            set: { value in
+                setBooleanAnswer(value, at: index, response: response)
+            }
+        ))
+        .tint(.red)
+        .disabled(isReadOnly)
+    }
+
+    private func criterionNumberInput(index: Int, response: LineCheckCriterionResponseDto) -> some View {
+        HStack(spacing: 10) {
+            TextField("", text: Binding(
+                get: { numberText(for: response) },
+                set: { setNumberAnswer(sanitizedNumberText($0), at: index, response: response) }
+            ))
+            .keyboardType(.decimalPad)
+            .font(.title3.weight(.semibold))
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
+
+            if let unit = response.unit, !unit.isEmpty {
+                Text(unit)
+                    .font(.headline.weight(.medium))
+                    .foregroundStyle(.secondary)
+            } else if isTemperatureCriterion(response) {
+                Text("°F")
+                    .font(.headline.weight(.medium))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.horizontal, 16)
+        .frame(height: 54)
+        .background(Color(.systemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(criterionNumberBorderColor(for: response), lineWidth: 1.5)
+        }
+    }
+
+    private func criterionBooleanInput(index: Int, response: LineCheckCriterionResponseDto) -> some View {
+        HStack(spacing: 12) {
+            Button {
+                setBooleanAnswer(true, at: index, response: response)
+            } label: {
+                Label("Pass", systemImage: "checkmark")
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(booleanAnswer(for: response) == true ? .green : .gray.opacity(0.35))
+
+            Button {
+                setBooleanAnswer(false, at: index, response: response)
+            } label: {
+                Label("Fail", systemImage: "xmark")
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .tint(booleanAnswer(for: response) == false ? .red : .gray)
+        }
+    }
+
+    private func criterionTextInput(index: Int, response: LineCheckCriterionResponseDto) -> some View {
+        TextEditor(text: Binding(
+            get: { response.textAnswer ?? response.notes ?? "" },
+            set: { value in
+                if isNotesCriterion(response) {
+                    item.item.criterionResponses?[index].notes = value
+                } else {
+                    item.item.criterionResponses?[index].textAnswer = value
+                }
+            }
+        ))
+        .scrollContentBackground(.hidden)
+        .padding(12)
+        .frame(minHeight: 88)
+        .background(Color(.systemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+        }
+    }
+
+    private func criterionPhotoInput(index: Int, response: LineCheckCriterionResponseDto) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 12) {
+                Button {
+                    activeCriterionPhotoResponseId = response.id
+                    isShowingCamera = true
+                } label: {
+                    photoActionLabel(title: "Take Photo", systemImage: "camera.fill")
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(
+                    isReadOnly ||
+                    isUploadingPhoto ||
+                    response.id == nil ||
+                    !UIImagePickerController.isSourceTypeAvailable(.camera)
+                )
+
+                PhotosPicker(
+                    selection: $selectedPhotoItem,
+                    matching: .images,
+                    photoLibrary: .shared()
+                ) {
+                    photoActionLabel(title: "Choose Photo", systemImage: "photo.on.rectangle")
+                }
+                .simultaneousGesture(
+                    TapGesture().onEnded {
+                        activeCriterionPhotoResponseId = response.id
+                    }
+                )
+                .buttonStyle(.bordered)
+                .disabled(isReadOnly || isUploadingPhoto || response.id == nil)
+            }
+
+            Text((response.photoCount ?? 0) > 0 ? "Photo added" : "No photo added")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private func criterionLabel(for response: LineCheckCriterionResponseDto) -> String {
+        response.label ?? response.criterionName ?? "Criterion"
+    }
+
+    private func criterionKey(for response: LineCheckCriterionResponseDto) -> String {
+        [response.criterionType, response.responseType, response.criterionName, response.label]
+            .compactMap { $0 }
+            .joined(separator: " ")
+            .lowercased()
+    }
+
+    private func criterionIcon(for response: LineCheckCriterionResponseDto) -> String {
+        if isTemperatureCriterion(response) { return "thermometer.medium" }
+        if isPhotoCriterion(response) { return "camera" }
+        if isTextCriterion(response) || isNotesCriterion(response) { return "square.and.pencil" }
+        if isMissingCriterion(response) { return "nosign" }
+        return "checklist"
+    }
+
+    private func criterionBackground(for response: LineCheckCriterionResponseDto) -> Color {
+        if response.requiresCorrection == true || failedCriterionNeedsNotes(response) {
+            return Color.red.opacity(0.08)
+        }
+
+        return Color.clear
+    }
+
+    private func isMissingCriterion(_ response: LineCheckCriterionResponseDto) -> Bool {
+        criterionKey(for: response).contains("missing")
+    }
+
+    private func isTemperatureCriterion(_ response: LineCheckCriterionResponseDto) -> Bool {
+        let key = criterionKey(for: response)
+        return key.contains("temperature") || key.contains("temp")
+    }
+
+    private func isPreparedCorrectlyCriterion(_ response: LineCheckCriterionResponseDto) -> Bool {
+        let key = criterionKey(for: response)
+        return key.contains("prepared") || key.contains("prep") || key.contains("correct")
+    }
+
+    private func isBooleanCriterion(_ response: LineCheckCriterionResponseDto) -> Bool {
+        let key = criterionKey(for: response)
+        let responseType = response.responseType?
+            .lowercased()
+            .replacingOccurrences(of: "_", with: "")
+            .replacingOccurrences(of: "-", with: "")
+            ?? ""
+
+        return responseType == "boolean"
+        || responseType == "bool"
+        || responseType == "checkbox"
+        || responseType == "passfail"
+        || key.contains("pass/fail")
+        || key.contains("pass fail")
+        || key.contains("standard")
+        || key.contains("clean")
+        || key.contains("stocked")
+    }
+
+    private func isNumberCriterion(_ response: LineCheckCriterionResponseDto) -> Bool {
+        let key = criterionKey(for: response)
+        return key.contains("number") || key.contains("numeric")
+    }
+
+    private func isTextCriterion(_ response: LineCheckCriterionResponseDto) -> Bool {
+        criterionKey(for: response).contains("text")
+    }
+
+    private func isNotesCriterion(_ response: LineCheckCriterionResponseDto) -> Bool {
+        criterionKey(for: response).contains("notes")
+    }
+
+    private func isPhotoCriterion(_ response: LineCheckCriterionResponseDto) -> Bool {
+        criterionKey(for: response).contains("photo")
+    }
+
+    private func numberText(for response: LineCheckCriterionResponseDto) -> String {
+        if isTemperatureCriterion(response) {
+            return item.temperature
+        }
+
+        guard let value = response.numberAnswer else { return "" }
+        return "\(value)"
+    }
+
+    private func setNumberAnswer(_ value: String, at index: Int, response: LineCheckCriterionResponseDto) {
+        if isTemperatureCriterion(response) {
+            item.temperature = value
+        }
+
+        item.item.criterionResponses?[index].numberAnswer = Float(value)
+    }
+
+    private func sanitizedNumberText(_ value: String) -> String {
+        var sanitized = ""
+        var hasDecimal = false
+
+        for character in value {
+            if character.isNumber {
+                sanitized.append(character)
+            } else if character == ".", !hasDecimal {
+                sanitized.append(character)
+                hasDecimal = true
+            }
+        }
+
+        return sanitized
+    }
+
+    private func booleanAnswer(for response: LineCheckCriterionResponseDto) -> Bool? {
+        if isMissingCriterion(response) {
+            return item.isMissing
+        }
+
+        if isPreparedCorrectlyCriterion(response) {
+            return item.isChecked
+        }
+
+        return response.booleanAnswer
+    }
+
+    private func setBooleanAnswer(_ value: Bool, at index: Int, response: LineCheckCriterionResponseDto) {
+        if isMissingCriterion(response) {
+            item.isMissing = value
+
+            if value {
+                item.temperature = ""
+                item.isChecked = nil
+                item.observations = ""
+                focusedField = nil
+            }
+        } else if isPreparedCorrectlyCriterion(response) {
+            item.isChecked = value
+        }
+
+        item.item.criterionResponses?[index].booleanAnswer = value
+        onFinalizeAction()
+    }
+
+    private func criterionNumberBorderColor(for response: LineCheckCriterionResponseDto) -> Color {
+        guard isTemperatureCriterion(response),
+              let value = Float(numberText(for: response)) else {
+            return Color.primary.opacity(0.08)
+        }
+
+        if let minValue = response.minValue, value < minValue {
+            return .red.opacity(0.8)
+        }
+
+        if let maxValue = response.maxValue, value > maxValue {
+            return .red.opacity(0.8)
+        }
+
+        return .green.opacity(0.8)
+    }
+
+    private func failedCriterionNeedsNotes(_ response: LineCheckCriterionResponseDto) -> Bool {
+        guard response.requireNotesOnFailure == true else { return false }
+
+        if isMissingCriterion(response) {
+            return item.isMissing && item.observations.isEmpty
+        }
+
+        if isTemperatureCriterion(response) {
+            guard let value = Float(numberText(for: response)) else { return false }
+
+            if let minValue = response.minValue, value < minValue {
+                return item.observations.isEmpty
+            }
+
+            if let maxValue = response.maxValue, value > maxValue {
+                return item.observations.isEmpty
+            }
+
+            return false
+        }
+
+        if isPreparedCorrectlyCriterion(response) || isBooleanCriterion(response) {
+            return booleanAnswer(for: response) == false && item.observations.isEmpty
+        }
+
+        return false
     }
 
     // MARK: Temperature
@@ -303,7 +732,10 @@ struct LineCheckItemRow: View {
 
                     HStack(spacing: 6) {
 
-                        TextField("", text: $item.temperature)
+                        TextField("", text: Binding(
+                            get: { item.temperature },
+                            set: { item.temperature = sanitizedNumberText($0) }
+                        ))
                             .keyboardType(.decimalPad)
                             .focused(
                                 $focusedField,
@@ -396,7 +828,7 @@ struct LineCheckItemRow: View {
 
                 } label: {
 
-                    Label("Yes", systemImage: "checkmark")
+                    Label("Pass", systemImage: "checkmark")
                         .lineLimit(1)
                         .minimumScaleFactor(0.82)
                         .frame(maxWidth: .infinity)
@@ -415,7 +847,7 @@ struct LineCheckItemRow: View {
 
                 } label: {
 
-                    Label("No", systemImage: "xmark")
+                    Label("Fail", systemImage: "xmark")
                         .lineLimit(1)
                         .minimumScaleFactor(0.82)
                         .frame(maxWidth: .infinity)
@@ -501,7 +933,7 @@ struct LineCheckItemRow: View {
                 .foregroundStyle(.primary)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(18)
+        .padding(cardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             Color(.secondarySystemBackground)
@@ -602,6 +1034,7 @@ struct LineCheckItemRow: View {
                 HStack(spacing: 12) {
 
                     Button {
+                        activeCriterionPhotoResponseId = nil
                         isShowingCamera = true
                     } label: {
                         photoActionLabel(
@@ -626,6 +1059,11 @@ struct LineCheckItemRow: View {
                             systemImage: "photo.on.rectangle"
                         )
                     }
+                    .simultaneousGesture(
+                        TapGesture().onEnded {
+                            activeCriterionPhotoResponseId = nil
+                        }
+                    )
                     .buttonStyle(.bordered)
                     .disabled(isReadOnly || isUploadingPhoto)
                 }
@@ -652,7 +1090,7 @@ struct LineCheckItemRow: View {
                 }
             }
         }
-        .padding(18)
+        .padding(cardPadding)
         .background(Color(.secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
@@ -732,8 +1170,8 @@ struct LineCheckItemRow: View {
                 .padding(12)
                 .frame(
                     minHeight: horizontalSizeClass == .regular
-                    ? 90
-                    : 110
+                    ? 84
+                    : 76
                 )
                 .background(
                     Color(.systemBackground)
@@ -756,7 +1194,7 @@ struct LineCheckItemRow: View {
                     )
                 }
         }
-        .padding(18)
+        .padding(cardPadding)
         .background(
             Color(.secondarySystemBackground)
         )
@@ -816,13 +1254,23 @@ struct LineCheckItemRow: View {
         photoError = nil
 
         do {
+            let criterionResponseId = activeCriterionPhotoResponseId
+
             _ = try await LineCheckPhotoApi.shared.uploadPhoto(
                 lineCheckItemId: lineCheckItemId,
                 imageData: imageData,
                 fileName: "line-check-\(lineCheckItemId)-\(UUID().uuidString).jpg",
-                photoType: .item,
-                notes: item.observations
+                photoType: criterionResponseId == nil ? .item : .criterion,
+                notes: item.observations,
+                criterionResponseId: criterionResponseId
             )
+
+            if let criterionResponseId,
+               let index = item.item.criterionResponses?.firstIndex(where: { $0.id == criterionResponseId }) {
+                let currentCount = item.item.criterionResponses?[index].photoCount ?? 0
+                item.item.criterionResponses?[index].photoCount = currentCount + 1
+                activeCriterionPhotoResponseId = nil
+            }
 
             photos = try await LineCheckPhotoApi.shared.getPhotos(
                 lineCheckItemId: lineCheckItemId
@@ -883,6 +1331,22 @@ struct LineCheckItemRow: View {
     private var hasNotes: Bool {
 
         !(item.item.templateNotes?.isEmpty ?? true)
+    }
+
+    private var shouldShowDetailsCard: Bool {
+        isFoodPrepItem || hasDetailValue(item.item.shelfLife)
+        || hasDetailValue(item.item.panSize)
+        || hasDetailValue(item.item.toolName)
+        || hasDetailValue(item.item.portionSize)
+    }
+
+    private var isFoodPrepItem: Bool {
+        (item.item.itemType ?? "FOOD_PREP").uppercased() == "FOOD_PREP"
+    }
+
+    private func hasDetailValue(_ value: String?) -> Bool {
+        guard let value else { return false }
+        return !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private func sectionHeader(

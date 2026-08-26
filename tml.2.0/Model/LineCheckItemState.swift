@@ -16,7 +16,7 @@ struct LineCheckItemState: Identifiable, Equatable {
     let stationName: String
 
     // MARK: Item DTO
-    let item: LineCheckItemDto
+    var item: LineCheckItemDto
 
     // MARK: Editable State
     var temperature: String

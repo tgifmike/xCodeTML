@@ -15,6 +15,7 @@ struct LineCheckPhotoDto: Identifiable, Codable, Equatable {
 enum LineCheckPhotoType: String, Codable, CaseIterable, Identifiable {
     case item = "BEFORE"
     case corrective = "CORRECTIVE"
+    case criterion = "CRITERION"
 
     var id: String { rawValue }
 
@@ -24,6 +25,8 @@ enum LineCheckPhotoType: String, Codable, CaseIterable, Identifiable {
             return "Before"
         case .corrective:
             return "Corrective"
+        case .criterion:
+            return "Criterion"
         }
     }
 }

@@ -15,7 +15,7 @@ struct LineCheckStationSection: View {
 
     private var completedItems: Int {
 
-        items.filter(isItemComplete)
+        items.filter(\.isCompleteForLineCheck)
             .count
     }
 
@@ -49,18 +49,6 @@ struct LineCheckStationSection: View {
         return .red
     }
 
-    private func isItemComplete(_ item: LineCheckItemState) -> Bool {
-        if item.isMissing {
-            return true
-        }
-
-        if item.item.tempTaken {
-            return !item.temperature.isEmpty && item.isChecked != nil
-        }
-
-        return item.isChecked != nil
-    }
-
     // MARK: BODY
 
     var body: some View {
@@ -79,6 +67,7 @@ struct LineCheckStationSection: View {
                         isReadOnly: isReadOnly,
                         onFinalizeAction: collapseIfComplete
                     )
+                    .id(items[index].id)
                 }
             }
             .frame(maxHeight: isExpanded ? nil : 0)

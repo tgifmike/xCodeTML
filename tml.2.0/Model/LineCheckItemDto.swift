@@ -4,6 +4,7 @@ struct LineCheckItemDto: Identifiable, Codable, Equatable {
 
     let id: String?
     let itemName: String?
+    let itemType: String?
     let shelfLife: String?
     let templateNotes: String?
     let tempTaken: Bool
@@ -20,5 +21,6 @@ struct LineCheckItemDto: Identifiable, Codable, Equatable {
     var observations: String?
     var isMissing: Bool?
     var isCorrected: Bool?
+    var criterionResponses: [LineCheckCriterionResponseDto]?
     var sortOrder: Int? = 0
 }
