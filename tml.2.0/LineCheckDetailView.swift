@@ -148,54 +148,56 @@ struct LineCheckDetailView: View {
             Set(vm.items.map(\.stationName))
         ).sorted()
 
-        return VStack(spacing: 0) {
+        return ScrollViewReader { scrollProxy in
+            VStack(spacing: 0) {
 
-            // TOP STICKY PROGRESS
-            progressHeader
-                .padding(.horizontal)
-                .padding(.top, 4)
-                .background(.ultraThinMaterial)
-                .zIndex(1)
+                // TOP STICKY PROGRESS
+                progressHeader
+                    .padding(.horizontal)
+                    .padding(.top, 4)
+                    .background(.ultraThinMaterial)
+                    .zIndex(1)
 
-            // SCROLL CONTENT
-            ScrollView {
+                // SCROLL CONTENT
+                ScrollView {
 
-                LazyVStack(spacing: 12) {
+                    LazyVStack(spacing: 12) {
 
-                    headerSection
+                        headerSection
 
-                    if isReadOnly {
-                        readOnlyBanner
+                        if isReadOnly {
+                            readOnlyBanner
+                        }
+
+                        ForEach(stationNames, id: \.self) { stationName in
+
+                            LineCheckStationSection(
+                                stationName: stationName,
+                                items: bindingForStation(stationName),
+                                focusedField: $focusedField,
+                                isReadOnly: isReadOnly
+                            )
+                        }
+
+                        Spacer()
+                            .frame(height: 100)
                     }
+                    .padding()
+                    .padding(.top, 4)
+                }
+                .scrollDismissesKeyboard(.interactively)
+                
+                if !isReadOnly {
+                    // BOTTOM STICKY SAVE BUTTON
+                    VStack {
 
-                    ForEach(stationNames, id: \.self) { stationName in
-
-                        LineCheckStationSection(
-                            stationName: stationName,
-                            items: bindingForStation(stationName),
-                            focusedField: $focusedField,
-                            isReadOnly: isReadOnly
-                        )
+                        saveButton(scrollProxy: scrollProxy)
                     }
-
-                    Spacer()
-                        .frame(height: 100)
+                    .padding()
+                    .background(.ultraThinMaterial)
                 }
-                .padding()
-                .padding(.top, 4)
+                
             }
-            .scrollDismissesKeyboard(.interactively)
-            
-            if !isReadOnly {
-                // BOTTOM STICKY SAVE BUTTON
-                VStack {
-
-                    saveButton
-                }
-                .padding()
-                .background(.ultraThinMaterial)
-            }
-            
         }
 //        .toolbar {
 //
@@ -371,9 +373,18 @@ struct LineCheckDetailView: View {
     
     // MARK: SAVE
 
-    private var saveButton: some View {
+    private func saveButton(scrollProxy: ScrollViewProxy) -> some View {
 
         Button {
+
+            guard vm.validateBeforeSave() else {
+                if let itemId = vm.firstIncompleteItem?.id {
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        scrollProxy.scrollTo(itemId, anchor: .center)
+                    }
+                }
+                return
+            }
 
             Task {
                 await vm.save(current: vm.lineCheck)

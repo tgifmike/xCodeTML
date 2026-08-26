@@ -131,12 +131,34 @@ final class APIClient {
         if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
             for key in ["message", "error", "detail"] {
                 if let message = json[key] as? String, !message.isEmpty {
-                    return message
+                    return cleanedServerMessage(message)
                 }
+            }
+
+            if let errors = json["errors"] as? [String], !errors.isEmpty {
+                return errors.joined(separator: "\n")
+            }
+
+            if let errors = json["errors"] as? [String: Any], !errors.isEmpty {
+                return errors
+                    .map { "\($0.key): \($0.value)" }
+                    .sorted()
+                    .joined(separator: "\n")
             }
         }
 
-        return String(data: data, encoding: .utf8)
+        if let message = String(data: data, encoding: .utf8), !message.isEmpty {
+            return cleanedServerMessage(message)
+        }
+
+        return nil
+    }
+
+    private func cleanedServerMessage(_ message: String) -> String {
+        message
+            .replacingOccurrences(of: "400 BAD_REQUEST ", with: "")
+            .replacingOccurrences(of: "Bad Request: ", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func makeMultipartBody(

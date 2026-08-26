@@ -36,7 +36,7 @@ final class LineCheckDetailVM: ObservableObject {
     }
 
     var completedItems: Int {
-        items.filter(isItemComplete).count
+        items.filter(\.isCompleteForLineCheck).count
     }
 
     var progress: Double {
@@ -54,16 +54,19 @@ final class LineCheckDetailVM: ObservableObject {
         items != originalItems
     }
 
-    private func isItemComplete(_ item: LineCheckItemState) -> Bool {
-        if item.isMissing {
+    var firstIncompleteItem: LineCheckItemState? {
+        items.first { !$0.isCompleteForLineCheck }
+    }
+
+    func validateBeforeSave() -> Bool {
+        guard let firstIncompleteItem else {
+            saveError = nil
             return true
         }
 
-        if item.item.tempTaken {
-            return !item.temperature.isEmpty && item.isChecked != nil
-        }
-
-        return item.isChecked != nil
+        saveError = firstIncompleteItem.validationMessage
+        ?? "Please finish \(firstIncompleteItem.item.itemName ?? "this item") in \(firstIncompleteItem.stationName) before saving."
+        return false
     }
 
     private func normalizedPrepState(
@@ -80,6 +83,137 @@ final class LineCheckDetailVM: ObservableObject {
         }
 
         return value
+    }
+
+    private func updatedCriterionResponses(
+        _ responses: [LineCheckCriterionResponseDto]?,
+        from item: LineCheckItemState
+    ) -> [LineCheckCriterionResponseDto]? {
+        guard let responses else { return nil }
+
+        return responses.map { response in
+            var updated = response
+            let key = criterionKey(for: response)
+
+            if key.contains("missing") {
+                updated.booleanAnswer = item.isMissing
+                if item.isMissing, !item.observations.isEmpty {
+                    updated.notes = item.observations
+                }
+                return updated
+            }
+
+            if isPreparedCorrectlyCriterion(response) {
+                let answer = item.isMissing ? false : (item.isChecked ?? response.booleanAnswer ?? true)
+                updated.booleanAnswer = answer
+
+                if answer == false, !item.observations.isEmpty {
+                    updated.notes = item.observations
+                }
+                return updated
+            }
+
+            if item.isMissing {
+                return updated
+            }
+
+            if isTemperatureCriterion(response) {
+                updated.numberAnswer = Float(item.temperature)
+                if isFailedTemperature(item), !item.observations.isEmpty {
+                    updated.notes = item.observations
+                }
+            } else if isBooleanCriterion(response),
+                      response.booleanAnswer == false,
+                      !item.observations.isEmpty {
+                updated.notes = item.observations
+            } else if isNumberCriterion(response),
+                      let answer = response.numberAnswer,
+                      isFailedNumber(answer, response: response),
+                      !item.observations.isEmpty {
+                updated.notes = item.observations
+            }
+
+            return updated
+        }
+    }
+
+    private func criterionKey(for response: LineCheckCriterionResponseDto) -> String {
+        [response.criterionType, response.responseType, response.criterionName, response.label]
+            .compactMap { $0 }
+            .joined(separator: " ")
+            .lowercased()
+    }
+
+    private func isTemperatureCriterion(_ response: LineCheckCriterionResponseDto) -> Bool {
+        let key = criterionKey(for: response)
+        return key.contains("temperature") || key.contains("temp")
+    }
+
+    private func isPreparedCorrectlyCriterion(_ response: LineCheckCriterionResponseDto) -> Bool {
+        let key = criterionKey(for: response)
+        return key.contains("prepared") || key.contains("prep") || key.contains("correct")
+    }
+
+    private func isBooleanCriterion(_ response: LineCheckCriterionResponseDto) -> Bool {
+        let key = criterionKey(for: response)
+        let responseType = response.responseType?
+            .lowercased()
+            .replacingOccurrences(of: "_", with: "")
+            .replacingOccurrences(of: "-", with: "")
+            ?? ""
+
+        return responseType == "boolean"
+        || responseType == "bool"
+        || responseType == "checkbox"
+        || responseType == "passfail"
+        || key.contains("pass/fail")
+        || key.contains("pass fail")
+        || key.contains("standard")
+        || key.contains("clean")
+        || key.contains("stocked")
+    }
+
+    private func isNotesCriterion(_ response: LineCheckCriterionResponseDto) -> Bool {
+        criterionKey(for: response).contains("notes")
+    }
+
+    private func isNumberCriterion(_ response: LineCheckCriterionResponseDto) -> Bool {
+        let key = criterionKey(for: response)
+        return key.contains("number") || key.contains("numeric")
+    }
+
+    private func isTextCriterion(_ response: LineCheckCriterionResponseDto) -> Bool {
+        criterionKey(for: response).contains("text")
+    }
+
+    private func requiresFailureNotes(_ response: LineCheckCriterionResponseDto) -> Bool {
+        response.requireNotesOnFailure ?? false
+    }
+
+    private func isFailedTemperature(_ item: LineCheckItemState) -> Bool {
+        guard let value = Float(item.temperature) else { return false }
+
+        if let minTemp = item.item.minTemp, value < minTemp {
+            return true
+        }
+
+        if let maxTemp = item.item.maxTemp, value > maxTemp {
+            return true
+        }
+
+        return false
+    }
+
+    private func isFailedNumber(_ value: Float, response: LineCheckCriterionResponseDto) -> Bool {
+        if let minValue = response.minValue, value < minValue {
+            return true
+        }
+
+        if let maxValue = response.maxValue, value > maxValue {
+            return true
+        }
+
+        return false
     }
 
     // MARK: LOAD
@@ -162,6 +296,11 @@ final class LineCheckDetailVM: ObservableObject {
                         }
 
                         dto.observations = item.observations
+                        dto.criterionResponses = updatedCriterionResponses(
+                            dto.criterionResponses,
+                            from: item
+                        )
+
                         return dto
                     }
                 )

@@ -203,7 +203,7 @@ private extension LocationStationsView {
 
         LazyVGrid(
             columns: [
-                GridItem(.adaptive(minimum: 140), spacing: 12)
+                GridItem(.adaptive(minimum: 150, maximum: 200), spacing: 12)
             ],
             spacing: 12
         ) {
@@ -233,10 +233,14 @@ struct StationCard: View {
 
             VStack(alignment: .leading, spacing: 8) {
 
-                HStack {
+                HStack(alignment: .top, spacing: 8) {
                     Text(station.stationName)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.primary)
+                        .lineLimit(stationNameLineLimit)
+                        .minimumScaleFactor(0.72)
+                        .allowsTightening(true)
+                        .truncationMode(.tail)
 
                     Spacer()
 
@@ -251,7 +255,7 @@ struct StationCard: View {
                     .foregroundStyle(.primary)
             }
             .padding()
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, minHeight: 78, maxHeight: 78, alignment: .leading)
             .background(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .fill(
@@ -271,6 +275,10 @@ struct StationCard: View {
             )
         }
         .buttonStyle(.plain)
+    }
+
+    private var stationNameLineLimit: Int {
+        station.stationName.contains(" ") ? 2 : 1
     }
 }
 

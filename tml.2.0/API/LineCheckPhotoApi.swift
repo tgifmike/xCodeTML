@@ -18,7 +18,8 @@ final class LineCheckPhotoApi {
         imageData: Data,
         fileName: String,
         photoType: LineCheckPhotoType,
-        notes: String? = nil
+        notes: String? = nil,
+        criterionResponseId: String? = nil
     ) async throws -> LineCheckPhotoDto {
 
         var fields = [
@@ -27,6 +28,12 @@ final class LineCheckPhotoApi {
 
         if let notes, !notes.isEmpty {
             fields["notes"] = notes
+        }
+
+        if photoType == .criterion,
+           let criterionResponseId,
+           !criterionResponseId.isEmpty {
+            fields["criterionResponseId"] = criterionResponseId
         }
 
         return try await APIClient.shared.uploadMultipart(
