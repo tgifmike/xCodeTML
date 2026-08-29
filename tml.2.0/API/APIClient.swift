@@ -43,6 +43,7 @@ final class APIClient {
         }
 
         let (data, response) = try await URLSession.shared.data(for: request)
+
         return try decode(data: data, response: response, responseType: responseType)
     }
 

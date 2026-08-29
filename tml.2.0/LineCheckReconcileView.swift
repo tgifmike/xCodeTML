@@ -2,6 +2,15 @@ import SwiftUI
 import PhotosUI
 import UIKit
 
+extension Notification.Name {
+    static let lineCheckCorrectionsDidChange = Notification.Name("lineCheckCorrectionsDidChange")
+}
+
+enum LineCheckCorrectionNotificationKey {
+    static let lineCheckId = "lineCheckId"
+    static let itemId = "itemId"
+}
+
 struct LineCheckReconcileView: View {
 
     let locationId: String
@@ -13,6 +22,7 @@ struct LineCheckReconcileView: View {
     @State private var isLoading = true
     @State private var hasLoaded = false
     @State private var errorMessage: String?
+    @State private var locallyCorrectedItemIds: Set<String> = []
 
     var body: some View {
         content
@@ -32,6 +42,11 @@ struct LineCheckReconcileView: View {
             }
             .refreshable {
                 await loadLineChecks()
+            }
+            .task {
+                for await notification in NotificationCenter.default.notifications(named: .lineCheckCorrectionsDidChange) {
+                    applyCorrectionChange(from: notification)
+                }
             }
     }
 
@@ -82,11 +97,7 @@ struct LineCheckReconcileView: View {
     }
 
     private func isResolved(_ issue: ReconcileIssue) -> Bool {
-        guard let itemId = issue.item.id else {
-            return issue.isCorrected
-        }
-
-        return issue.isCorrected || photosByItemId[itemId]?.contains { $0.photoType == .corrective } == true
+        issue.isCorrected
     }
 
     private func loadLineChecks() async {
@@ -94,9 +105,10 @@ struct LineCheckReconcileView: View {
         errorMessage = nil
 
         do {
-            lineChecks = try await LineCheckApi.shared.getCompletedLineChecksByLocation(
+            let fetchedLineChecks = try await LineCheckApi.shared.getCompletedLineChecksByLocation(
                 locationId: locationId
             )
+            lineChecks = lineChecksApplyingLocalCorrections(fetchedLineChecks)
 
             await loadPhotosForIssueItems()
         } catch {
@@ -122,6 +134,66 @@ struct LineCheckReconcileView: View {
             } catch {
                 errorMessage = error.localizedDescription
             }
+        }
+    }
+
+    private func applyCorrectionChange(from notification: Notification) {
+        guard let lineCheckId = notification.userInfo?[LineCheckCorrectionNotificationKey.lineCheckId] as? String,
+              let itemId = notification.userInfo?[LineCheckCorrectionNotificationKey.itemId] as? String else {
+            return
+        }
+
+        locallyCorrectedItemIds.insert(itemId)
+
+        guard let lineCheckIndex = lineChecks.firstIndex(where: { $0.id == lineCheckId }) else {
+            return
+        }
+
+        var lineCheck = lineChecks[lineCheckIndex]
+
+        for stationIndex in lineCheck.stations.indices {
+            guard let itemIndex = lineCheck.stations[stationIndex]
+                .items
+                .firstIndex(where: { $0.id == itemId }) else {
+                continue
+            }
+
+            let station = lineCheck.stations[stationIndex]
+            var items = station.items
+            items[itemIndex].isCorrected = true
+            lineCheck.stations[stationIndex] = LineCheckStationDto(
+                id: station.id,
+                stationName: station.stationName,
+                items: items
+            )
+            lineChecks[lineCheckIndex] = lineCheck
+            return
+        }
+    }
+
+    private func lineChecksApplyingLocalCorrections(_ fetchedLineChecks: [LineCheckDto]) -> [LineCheckDto] {
+        fetchedLineChecks.map { fetchedLineCheck in
+            var lineCheck = fetchedLineCheck
+
+            lineCheck.stations = lineCheck.stations.map { station in
+                var items = station.items
+                for itemIndex in items.indices {
+                    guard let itemId = items[itemIndex].id,
+                          locallyCorrectedItemIds.contains(itemId) else {
+                        continue
+                    }
+
+                    items[itemIndex].isCorrected = true
+                }
+
+                return LineCheckStationDto(
+                    id: station.id,
+                    stationName: station.stationName,
+                    items: items
+                )
+            }
+
+            return lineCheck
         }
     }
 }
@@ -238,11 +310,15 @@ private struct LineCheckReconcileDetailView: View {
                     isBusy: activeIssueId == issue.id,
                     isLoadingPhotos: isLoadingPhotos(for: issue),
                     isCorrected: isCorrectedSection,
+                    correctiveNotes: correctiveNotesBinding(for: issue),
                     onTakePhoto: {
                         cameraIssue = issue
                     },
                     onChoosePhoto: { photoItem in
                         await resolveIssue(issue.id, photoItem: photoItem)
+                    },
+                    onMarkCorrected: {
+                        await markIssueCorrected(issue)
                     }
                 )
             }
@@ -258,11 +334,7 @@ private struct LineCheckReconcileDetailView: View {
     }
 
     private func isResolved(_ issue: ReconcileIssue) -> Bool {
-        guard let itemId = issue.item.id else {
-            return issue.isCorrected
-        }
-
-        return issue.isCorrected || photosByItemId[itemId]?.contains { $0.photoType == .corrective } == true
+        issue.isCorrected
     }
 
     private func photos(for issue: ReconcileIssue) -> [LineCheckPhotoDto] {
@@ -273,6 +345,47 @@ private struct LineCheckReconcileDetailView: View {
     private func isLoadingPhotos(for issue: ReconcileIssue) -> Bool {
         guard let itemId = issue.item.id else { return false }
         return loadingPhotoItemIds.contains(itemId)
+    }
+
+    private func correctiveNotesBinding(for issue: ReconcileIssue) -> Binding<String> {
+        Binding(
+            get: {
+                guard lineCheck.stations.indices.contains(issue.stationIndex),
+                      lineCheck.stations[issue.stationIndex].items.indices.contains(issue.itemIndex) else {
+                    return ""
+                }
+
+                return lineCheck.stations[issue.stationIndex]
+                    .items[issue.itemIndex]
+                    .correctiveNotes ?? ""
+            },
+            set: { newValue in
+                guard lineCheck.stations.indices.contains(issue.stationIndex),
+                      lineCheck.stations[issue.stationIndex].items.indices.contains(issue.itemIndex) else {
+                    return
+                }
+
+                let station = lineCheck.stations[issue.stationIndex]
+                var items = station.items
+                items[issue.itemIndex].correctiveNotes = newValue
+                lineCheck.stations[issue.stationIndex] = LineCheckStationDto(
+                    id: station.id,
+                    stationName: station.stationName,
+                    items: items
+                )
+            }
+        )
+    }
+
+    private func correctiveNotes(for issue: ReconcileIssue) -> String {
+        guard lineCheck.stations.indices.contains(issue.stationIndex),
+              lineCheck.stations[issue.stationIndex].items.indices.contains(issue.itemIndex) else {
+            return ""
+        }
+
+        return lineCheck.stations[issue.stationIndex]
+            .items[issue.itemIndex]
+            .correctiveNotes ?? ""
     }
 
     private func loadPhotosForVisibleIssues() async {
@@ -344,16 +457,31 @@ private struct LineCheckReconcileDetailView: View {
         errorMessage = nil
 
         do {
+            let notes = correctiveNotes(for: issue)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+
             _ = try await LineCheckPhotoApi.shared.uploadPhoto(
                 lineCheckItemId: itemId,
                 imageData: imageData,
                 fileName: "corrective-\(itemId)-\(UUID().uuidString).jpg",
                 photoType: .corrective,
-                notes: "Corrective follow-up"
+                notes: notes.isEmpty ? "Corrective follow-up" : notes
             )
 
             photosByItemId[itemId] = nil
             await loadPhotos(for: itemId)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+
+        activeIssueId = nil
+    }
+
+    private func markIssueCorrected(_ issue: ReconcileIssue) async {
+        activeIssueId = issue.id
+        errorMessage = nil
+
+        do {
             try await markCorrected(issue)
         } catch {
             errorMessage = error.localizedDescription
@@ -375,7 +503,22 @@ private struct LineCheckReconcileDetailView: View {
             items: items
         )
 
-        try await LineCheckApi.shared.saveLineCheck(lineCheck)
+        let savedLineCheck = try await LineCheckApi.shared.saveLineCheck(lineCheck)
+        guard savedLineCheck.containsCorrectedItem(withId: item.id) else {
+            throw CorrectionSaveError.notPersisted
+        }
+
+        lineCheck = savedLineCheck
+        if let itemId = item.id {
+            NotificationCenter.default.post(
+                name: .lineCheckCorrectionsDidChange,
+                object: nil,
+                userInfo: [
+                    LineCheckCorrectionNotificationKey.lineCheckId: lineCheck.id,
+                    LineCheckCorrectionNotificationKey.itemId: itemId
+                ]
+            )
+        }
     }
 
     private func jpegData(from image: UIImage) -> Data? {
@@ -531,6 +674,8 @@ private struct ReconcileIssue: Identifiable, Equatable {
             reasons.append("Temp out of range")
         }
 
+        reasons.append(contentsOf: failedCriterionReasons(for: item))
+
         if hasIncorrectPrep(item) {
             reasons.append("Prepared wrong")
         }
@@ -553,7 +698,48 @@ private struct ReconcileIssue: Identifiable, Equatable {
     }
 
     private static func hasIncorrectPrep(_ item: LineCheckItemDto) -> Bool {
-        item.itemChecked == false
+        if item.criterionResponses?.isEmpty == false {
+            return false
+        }
+
+        return item.itemChecked == false
+    }
+
+    private static func failedCriterionReasons(for item: LineCheckItemDto) -> [String] {
+        item.criterionResponses?.compactMap { response in
+            if isMissingCriterion(response) {
+                return nil
+            }
+
+            let failed = response.requiresCorrection == true
+            || response.booleanAnswer == false
+            || isFailedNumber(response)
+
+            guard failed else { return nil }
+            return response.label ?? response.criterionName ?? "Criterion failed"
+        } ?? []
+    }
+
+    private static func isFailedNumber(_ response: LineCheckCriterionResponseDto) -> Bool {
+        guard let numberAnswer = response.numberAnswer else { return false }
+
+        if let minValue = response.minValue, numberAnswer < minValue {
+            return true
+        }
+
+        if let maxValue = response.maxValue, numberAnswer > maxValue {
+            return true
+        }
+
+        return false
+    }
+
+    private static func isMissingCriterion(_ response: LineCheckCriterionResponseDto) -> Bool {
+        [response.criterionType, response.responseType, response.criterionName, response.label]
+            .compactMap { $0 }
+            .joined(separator: " ")
+            .lowercased()
+            .contains("missing")
     }
 }
 
@@ -564,10 +750,20 @@ private struct ReconcileIssueCard: View {
     let isBusy: Bool
     let isLoadingPhotos: Bool
     let isCorrected: Bool
+    @Binding var correctiveNotes: String
     let onTakePhoto: () -> Void
     let onChoosePhoto: (PhotosPickerItem) async -> Void
+    let onMarkCorrected: () async -> Void
 
     @State private var selectedPhotoItem: PhotosPickerItem?
+
+    private var hasCorrectivePhoto: Bool {
+        photos.contains { $0.photoType == .corrective }
+    }
+
+    private var canMarkCorrected: Bool {
+        hasCorrectivePhoto || !correctiveNotes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -605,6 +801,8 @@ private struct ReconcileIssueCard: View {
                 }
             }
 
+            correctiveNotesSection
+
             photoStrip
 
             if isCorrected {
@@ -638,6 +836,19 @@ private struct ReconcileIssueCard: View {
                     .buttonStyle(.bordered)
                     .disabled(isBusy)
                 }
+
+                Button {
+                    Task {
+                        await onMarkCorrected()
+                    }
+                } label: {
+                    Label("Mark Corrected", systemImage: "checkmark.circle.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.green)
+                .disabled(isBusy || !canMarkCorrected)
             }
         }
         .padding(16)
@@ -654,6 +865,25 @@ private struct ReconcileIssueCard: View {
                 await onChoosePhoto(newValue)
                 selectedPhotoItem = nil
             }
+        }
+    }
+
+    private var correctiveNotesSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Correction Notes")
+                .font(.subheadline.weight(.semibold))
+
+            TextEditor(text: $correctiveNotes)
+                .scrollContentBackground(.hidden)
+                .padding(10)
+                .frame(minHeight: 86)
+                .background(Color(.systemBackground))
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+                }
+                .disabled(isCorrected || isBusy)
         }
     }
 
@@ -729,6 +959,26 @@ private struct ReconcileIssueCard: View {
         Image(systemName: "photo")
             .font(.title3)
             .foregroundStyle(.secondary)
+    }
+}
+
+private enum CorrectionSaveError: LocalizedError {
+    case notPersisted
+
+    var errorDescription: String? {
+        "The correction was sent, but the server did not save it as corrected. Please check that the backend save endpoint persists the corrected field."
+    }
+}
+
+private extension LineCheckDto {
+    func containsCorrectedItem(withId itemId: String?) -> Bool {
+        guard let itemId else { return false }
+
+        return stations.contains { station in
+            station.items.contains { item in
+                item.id == itemId && item.isCorrected == true
+            }
+        }
     }
 }
 

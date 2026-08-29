@@ -148,6 +148,7 @@ private struct LineCheckHistoryRow: View {
             total + station.items.filter { item in
                 item.isMissing == true ||
                 isOutOfTemperatureRange(item) ||
+                hasFailedCriteria(item) ||
                 hasIncorrectPrep(item)
             }.count
         }
@@ -170,6 +171,44 @@ private struct LineCheckHistoryRow: View {
     }
 
     func hasIncorrectPrep(_ item: LineCheckItemDto) -> Bool {
-        item.itemChecked == false
+        if item.criterionResponses?.isEmpty == false {
+            return false
+        }
+
+        return item.itemChecked == false
+    }
+
+    func hasFailedCriteria(_ item: LineCheckItemDto) -> Bool {
+        item.criterionResponses?.contains { response in
+            if isMissingCriterion(response) {
+                return false
+            }
+
+            return response.requiresCorrection == true
+            || response.booleanAnswer == false
+            || isFailedNumber(response)
+        } ?? false
+    }
+
+    func isMissingCriterion(_ response: LineCheckCriterionResponseDto) -> Bool {
+        [response.criterionType, response.responseType, response.criterionName, response.label]
+            .compactMap { $0 }
+            .joined(separator: " ")
+            .lowercased()
+            .contains("missing")
+    }
+
+    func isFailedNumber(_ response: LineCheckCriterionResponseDto) -> Bool {
+        guard let numberAnswer = response.numberAnswer else { return false }
+
+        if let minValue = response.minValue, numberAnswer < minValue {
+            return true
+        }
+
+        if let maxValue = response.maxValue, numberAnswer > maxValue {
+            return true
+        }
+
+        return false
     }
 }

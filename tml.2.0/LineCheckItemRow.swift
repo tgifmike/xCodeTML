@@ -361,7 +361,7 @@ struct LineCheckItemRow: View {
                     criterionMissingInput(index: index, response: response)
                 } else if isTemperatureCriterion(response) || isNumberCriterion(response) {
                     criterionNumberInput(index: index, response: response)
-                } else if isBooleanCriterion(response) || isPreparedCorrectlyCriterion(response) || isMissingCriterion(response) {
+                } else if isBooleanCriterion(response) {
                     criterionBooleanInput(index: index, response: response)
                 } else if isPhotoCriterion(response) {
                     criterionPhotoInput(index: index, response: response)
@@ -545,11 +545,6 @@ struct LineCheckItemRow: View {
         return key.contains("temperature") || key.contains("temp")
     }
 
-    private func isPreparedCorrectlyCriterion(_ response: LineCheckCriterionResponseDto) -> Bool {
-        let key = criterionKey(for: response)
-        return key.contains("prepared") || key.contains("prep") || key.contains("correct")
-    }
-
     private func isBooleanCriterion(_ response: LineCheckCriterionResponseDto) -> Bool {
         let key = criterionKey(for: response)
         let responseType = response.responseType?
@@ -624,10 +619,6 @@ struct LineCheckItemRow: View {
             return item.isMissing
         }
 
-        if isPreparedCorrectlyCriterion(response) {
-            return item.isChecked
-        }
-
         return response.booleanAnswer
     }
 
@@ -641,8 +632,6 @@ struct LineCheckItemRow: View {
                 item.observations = ""
                 focusedField = nil
             }
-        } else if isPreparedCorrectlyCriterion(response) {
-            item.isChecked = value
         }
 
         item.item.criterionResponses?[index].booleanAnswer = value
@@ -687,7 +676,7 @@ struct LineCheckItemRow: View {
             return false
         }
 
-        if isPreparedCorrectlyCriterion(response) || isBooleanCriterion(response) {
+        if isBooleanCriterion(response) {
             return booleanAnswer(for: response) == false && item.observations.isEmpty
         }
 
@@ -1022,7 +1011,7 @@ struct LineCheckItemRow: View {
                     Button {
                         isPhotosExpanded.toggle()
                     } label: {
-                        Image(systemName: isPhotosExpanded ? "chevron.up" : "camera.badge.plus")
+                        Image(systemName: isPhotosExpanded ? "chevron.up" : "camera.fill")
                             .font(.footnote.weight(.semibold))
                             .foregroundStyle(.secondary)
                     }

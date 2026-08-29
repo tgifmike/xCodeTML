@@ -10,7 +10,8 @@ struct LocationDetailView: View {
     @EnvironmentObject var sessionManager: SessionManager
     @EnvironmentObject var appSettings: AppSettings
 
-    @State private var correctiveLineCheckCount = 0
+    @State private var correctiveItemCount = 0
+    @State private var locallyCorrectedItemIds: Set<String> = []
 
     var body: some View {
         content
@@ -21,6 +22,15 @@ struct LocationDetailView: View {
             }
             .onAppear {
                 Task {
+                    await loadCorrectiveLineCheckCount()
+                }
+            }
+            .task {
+                for await notification in NotificationCenter.default.notifications(named: .lineCheckCorrectionsDidChange) {
+                    if let itemId = notification.userInfo?[LineCheckCorrectionNotificationKey.itemId] as? String {
+                        locallyCorrectedItemIds.insert(itemId)
+                    }
+
                     await loadCorrectiveLineCheckCount()
                 }
             }
@@ -97,7 +107,7 @@ private extension LocationDetailView {
                     title: "Corrective Actions Needed",
                     subtitle: "Review line checks that need follow-up",
                     systemImage: "exclamationmark.triangle",
-                    badgeCount: correctiveLineCheckCount
+                    badgeCount: correctiveItemCount
                 )
             }
             .buttonStyle(.plain)
@@ -127,10 +137,10 @@ private extension LocationDetailView {
                 locationId: locationId
             )
 
-            correctiveLineCheckCount = await unresolvedLineCheckCount(in: lineChecks)
-            await updateAppIconBadge(correctiveLineCheckCount)
+            correctiveItemCount = unresolvedCorrectionItemCount(in: lineChecks)
+            await updateAppIconBadge(correctiveItemCount)
         } catch {
-            correctiveLineCheckCount = 0
+            correctiveItemCount = 0
             await updateAppIconBadge(0)
         }
     }
@@ -148,48 +158,36 @@ private extension LocationDetailView {
         }
     }
 
-    func unresolvedLineCheckCount(in lineChecks: [LineCheckDto]) async -> Int {
+    func unresolvedCorrectionItemCount(in lineChecks: [LineCheckDto]) -> Int {
         var count = 0
 
         for lineCheck in lineChecks {
-            if await hasUnresolvedIssues(in: lineCheck) {
-                count += 1
+            for station in lineCheck.stations {
+                count += station.items.filter { item in
+                    hasCorrectionIssue(item) && !isResolved(item)
+                }.count
             }
         }
 
         return count
     }
 
-    func hasUnresolvedIssues(in lineCheck: LineCheckDto) async -> Bool {
-        for station in lineCheck.stations {
-            for item in station.items where hasCorrectionIssue(item) {
-                guard item.isCorrected != true else {
-                    continue
-                }
-
-                if await hasCorrectivePhoto(for: item.id) == false {
-                    return true
-                }
-            }
+    func isResolved(_ item: LineCheckItemDto) -> Bool {
+        if item.isCorrected == true {
+            return true
         }
 
-        return false
-    }
-
-    func hasCorrectivePhoto(for itemId: String?) async -> Bool {
-        guard let itemId else { return false }
-
-        do {
-            let photos = try await LineCheckPhotoApi.shared.getPhotos(lineCheckItemId: itemId)
-            return photos.contains { $0.photoType == .corrective }
-        } catch {
+        guard let itemId = item.id else {
             return false
         }
+
+        return locallyCorrectedItemIds.contains(itemId)
     }
 
     func hasCorrectionIssue(_ item: LineCheckItemDto) -> Bool {
         item.isMissing == true ||
         isOutOfTemperatureRange(item) ||
+        hasFailedCriteria(item) ||
         hasIncorrectPrep(item)
     }
 
@@ -208,7 +206,45 @@ private extension LocationDetailView {
     }
 
     func hasIncorrectPrep(_ item: LineCheckItemDto) -> Bool {
-        item.itemChecked == false
+        if item.criterionResponses?.isEmpty == false {
+            return false
+        }
+
+        return item.itemChecked == false
+    }
+
+    func hasFailedCriteria(_ item: LineCheckItemDto) -> Bool {
+        return item.criterionResponses?.contains { response in
+            if isMissingCriterion(response) {
+                return false
+            }
+
+            return response.requiresCorrection == true ||
+            response.booleanAnswer == false ||
+            isFailedNumber(response)
+        } ?? false
+    }
+
+    func isFailedNumber(_ response: LineCheckCriterionResponseDto) -> Bool {
+        guard let numberAnswer = response.numberAnswer else { return false }
+
+        if let minValue = response.minValue, numberAnswer < minValue {
+            return true
+        }
+
+        if let maxValue = response.maxValue, numberAnswer > maxValue {
+            return true
+        }
+
+        return false
+    }
+
+    func isMissingCriterion(_ response: LineCheckCriterionResponseDto) -> Bool {
+        [response.criterionType, response.responseType, response.criterionName, response.label]
+            .compactMap { $0 }
+            .joined(separator: " ")
+            .lowercased()
+            .contains("missing")
     }
 
     var accountImage: some View {
