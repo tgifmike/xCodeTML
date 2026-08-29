@@ -60,11 +60,6 @@ extension LineCheckItemState {
             return !requiresFailureNotes(response) || !isFailedTemperature || !observations.isEmpty
         }
 
-        if isPreparedCorrectlyCriterion(response) {
-            guard let answer = isChecked else { return true }
-            return !requiresFailureNotes(response) || answer != false || !observations.isEmpty
-        }
-
         if isBooleanCriterion(response) {
             guard let answer = response.booleanAnswer else { return false }
             return !requiresFailureNotes(response) || answer != false || !observations.isEmpty
@@ -114,11 +109,6 @@ extension LineCheckItemState {
         responses.contains { response in
             isTemperatureCriterion(response)
         }
-    }
-
-    private func isPreparedCorrectlyCriterion(_ response: LineCheckCriterionResponseDto) -> Bool {
-        let key = criterionKey(for: response)
-        return key.contains("prepared") || key.contains("prep") || key.contains("correct")
     }
 
     private func isBooleanCriterion(_ response: LineCheckCriterionResponseDto) -> Bool {
@@ -177,6 +167,10 @@ extension LineCheckItemState {
         }
 
         return item.criterionResponses?.contains { response in
+            if isMissingCriterion(response) {
+                return false
+            }
+
             if isBooleanCriterion(response), response.booleanAnswer == false {
                 return true
             }

@@ -97,17 +97,8 @@ final class LineCheckDetailVM: ObservableObject {
 
             if key.contains("missing") {
                 updated.booleanAnswer = item.isMissing
+                updated.requiresCorrection = item.isMissing
                 if item.isMissing, !item.observations.isEmpty {
-                    updated.notes = item.observations
-                }
-                return updated
-            }
-
-            if isPreparedCorrectlyCriterion(response) {
-                let answer = item.isMissing ? false : (item.isChecked ?? response.booleanAnswer ?? true)
-                updated.booleanAnswer = answer
-
-                if answer == false, !item.observations.isEmpty {
                     updated.notes = item.observations
                 }
                 return updated
@@ -119,22 +110,62 @@ final class LineCheckDetailVM: ObservableObject {
 
             if isTemperatureCriterion(response) {
                 updated.numberAnswer = Float(item.temperature)
-                if isFailedTemperature(item), !item.observations.isEmpty {
+                let failed = isFailedTemperature(item)
+                updated.requiresCorrection = failed
+                if failed, !item.observations.isEmpty {
                     updated.notes = item.observations
                 }
-            } else if isBooleanCriterion(response),
-                      response.booleanAnswer == false,
-                      !item.observations.isEmpty {
-                updated.notes = item.observations
-            } else if isNumberCriterion(response),
-                      let answer = response.numberAnswer,
-                      isFailedNumber(answer, response: response),
-                      !item.observations.isEmpty {
-                updated.notes = item.observations
+            } else if isBooleanCriterion(response) {
+                let failed = response.booleanAnswer == false
+                updated.requiresCorrection = failed
+                if failed, !item.observations.isEmpty {
+                    updated.notes = item.observations
+                }
+            } else if isNumberCriterion(response), let answer = response.numberAnswer {
+                let failed = isFailedNumber(answer, response: response)
+                updated.requiresCorrection = failed
+                if failed, !item.observations.isEmpty {
+                    updated.notes = item.observations
+                }
             }
 
             return updated
         }
+    }
+
+    private func overallItemChecked(
+        for item: LineCheckItemState,
+        criterionResponses: [LineCheckCriterionResponseDto]?
+    ) -> Bool? {
+        guard let criterionResponses, !criterionResponses.isEmpty else {
+            return item.isChecked
+        }
+
+        if item.isMissing {
+            return false
+        }
+
+        let failed = criterionResponses.contains { response in
+            if criterionKey(for: response).contains("missing") {
+                return false
+            }
+
+            if isTemperatureCriterion(response) {
+                return isFailedTemperature(item)
+            }
+
+            if isBooleanCriterion(response) {
+                return response.booleanAnswer == false
+            }
+
+            if isNumberCriterion(response), let answer = response.numberAnswer {
+                return isFailedNumber(answer, response: response)
+            }
+
+            return false
+        }
+
+        return !failed
     }
 
     private func criterionKey(for response: LineCheckCriterionResponseDto) -> String {
@@ -147,11 +178,6 @@ final class LineCheckDetailVM: ObservableObject {
     private func isTemperatureCriterion(_ response: LineCheckCriterionResponseDto) -> Bool {
         let key = criterionKey(for: response)
         return key.contains("temperature") || key.contains("temp")
-    }
-
-    private func isPreparedCorrectlyCriterion(_ response: LineCheckCriterionResponseDto) -> Bool {
-        let key = criterionKey(for: response)
-        return key.contains("prepared") || key.contains("prep") || key.contains("correct")
     }
 
     private func isBooleanCriterion(_ response: LineCheckCriterionResponseDto) -> Bool {
@@ -292,13 +318,16 @@ final class LineCheckDetailVM: ObservableObject {
                             dto.temperature = item.item.tempTaken && !item.temperature.isEmpty
                             ? Float(item.temperature)
                             : nil
-                            dto.itemChecked = item.isChecked
                         }
 
                         dto.observations = item.observations
                         dto.criterionResponses = updatedCriterionResponses(
                             dto.criterionResponses,
                             from: item
+                        )
+                        dto.itemChecked = overallItemChecked(
+                            for: item,
+                            criterionResponses: dto.criterionResponses
                         )
 
                         return dto

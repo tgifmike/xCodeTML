@@ -43,11 +43,11 @@ final class LineCheckApi {
     // MARK: - Save Line Check
     func saveLineCheck(
         _ lineCheck: LineCheckDto
-    ) async throws {
+    ) async throws -> LineCheckDto {
 
-        _ = try await APIClient.shared.request(
+        try await APIClient.shared.request(
             .saveLineCheck(lineCheck),
-            responseType: EmptyResponse.self
+            responseType: LineCheckDto.self
         )
     }
 }
