@@ -96,6 +96,10 @@ struct LineCheckItemRow: View {
             photoArea
 
             observationsSection
+
+            if shouldShowCorrectionHistory {
+                correctionHistorySection
+            }
         }
         .task(id: item.id) {
             await loadPhotos()
@@ -596,6 +600,33 @@ struct LineCheckItemRow: View {
         }
 
         item.item.criterionResponses?[index].numberAnswer = Float(value)
+        item.item.criterionResponses?[index].requiresCorrection = criterionNumberRequiresCorrection(
+            value,
+            response: response
+        )
+    }
+
+    private func criterionNumberRequiresCorrection(
+        _ value: String,
+        response: LineCheckCriterionResponseDto
+    ) -> Bool {
+        guard !value.isEmpty else {
+            return response.required == true
+        }
+
+        guard let number = Float(value) else {
+            return response.required == true
+        }
+
+        if let minValue = response.minValue, number < minValue {
+            return true
+        }
+
+        if let maxValue = response.maxValue, number > maxValue {
+            return true
+        }
+
+        return false
     }
 
     private func sanitizedNumberText(_ value: String) -> String {
@@ -639,16 +670,16 @@ struct LineCheckItemRow: View {
     }
 
     private func criterionNumberBorderColor(for response: LineCheckCriterionResponseDto) -> Color {
-        guard isTemperatureCriterion(response),
-              let value = Float(numberText(for: response)) else {
+        guard isTemperatureCriterion(response) || isNumberCriterion(response) else {
             return Color.primary.opacity(0.08)
         }
 
-        if let minValue = response.minValue, value < minValue {
-            return .red.opacity(0.8)
+        let value = numberText(for: response)
+        guard !value.isEmpty else {
+            return Color.primary.opacity(0.08)
         }
 
-        if let maxValue = response.maxValue, value > maxValue {
+        if criterionNumberRequiresCorrection(value, response: response) {
             return .red.opacity(0.8)
         }
 
@@ -663,17 +694,13 @@ struct LineCheckItemRow: View {
         }
 
         if isTemperatureCriterion(response) {
-            guard let value = Float(numberText(for: response)) else { return false }
+            let value = numberText(for: response)
+            guard !value.isEmpty else { return false }
 
-            if let minValue = response.minValue, value < minValue {
-                return item.observations.isEmpty
-            }
-
-            if let maxValue = response.maxValue, value > maxValue {
-                return item.observations.isEmpty
-            }
-
-            return false
+            return criterionNumberRequiresCorrection(
+                value,
+                response: response
+            ) && item.observations.isEmpty
         }
 
         if isBooleanCriterion(response) {
@@ -1136,6 +1163,96 @@ struct LineCheckItemRow: View {
         Image(systemName: "photo")
             .font(.title2)
             .foregroundStyle(.secondary)
+    }
+
+    // MARK: Correction History
+
+    private var shouldShowCorrectionHistory: Bool {
+        isReadOnly && (
+            item.item.isCorrected == true ||
+            hasDetailValue(item.item.correctiveNotes) ||
+            !correctivePhotos.isEmpty
+        )
+    }
+
+    private var correctivePhotos: [LineCheckPhotoDto] {
+        photos.filter { $0.photoType == .corrective }
+    }
+
+    private var correctionHistorySection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            sectionHeader(
+                title: "Correction",
+                systemImage: "checkmark.seal"
+            )
+
+            Label("Marked corrected", systemImage: "checkmark.circle.fill")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.green)
+
+            if let correctedMetaText {
+                Text(correctedMetaText)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
+            if let notes = item.item.correctiveNotes,
+               !notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Correction Notes")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.secondary)
+
+                    Text(notes)
+                        .font(.body)
+                        .foregroundStyle(.primary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            if !correctivePhotos.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Corrective Photos")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.secondary)
+
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 10) {
+                            ForEach(correctivePhotos) { photo in
+                                photoThumbnail(photo)
+                            }
+                        }
+                        .padding(.vertical, 2)
+                    }
+                }
+            }
+        }
+        .padding(cardPadding)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.green.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(Color.green.opacity(0.18), lineWidth: 1)
+        }
+    }
+
+    private var correctedMetaText: String? {
+        var parts: [String] = []
+
+        if let correctedByName = item.item.correctedByName,
+           !correctedByName.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines).isEmpty {
+            parts.append("By \(correctedByName)")
+        }
+
+        if let correctedAt = item.item.correctedAt {
+            let formatter = DateFormatter()
+            formatter.dateStyle = .medium
+            formatter.timeStyle = .short
+            parts.append(formatter.string(from: correctedAt))
+        }
+
+        return parts.isEmpty ? nil : parts.joined(separator: " - ")
     }
 
     // MARK: Observations

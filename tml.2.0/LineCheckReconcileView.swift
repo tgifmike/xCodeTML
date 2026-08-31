@@ -63,9 +63,9 @@ struct LineCheckReconcileView: View {
             )
         } else if lineCheckSummaries.isEmpty {
             ContentUnavailableView(
-                "No Corrections Needed",
+                "All Corrective Actions Completed",
                 systemImage: "checkmark.seal",
-                description: Text("Line checks needing follow-up will appear here.")
+                description: Text("There are no line check items waiting for correction.")
             )
         } else {
             List(lineCheckSummaries) { summary in
@@ -208,6 +208,7 @@ private struct LineCheckReconcileDetailView: View {
     @State private var photosByItemId: [String: [LineCheckPhotoDto]] = [:]
     @State private var loadingPhotoItemIds: Set<String> = []
     @State private var errorMessage: String?
+    @State private var saveStatusMessage: String?
 
     init(lineCheck: LineCheckDto, locationName: String) {
         _lineCheck = State(initialValue: lineCheck)
@@ -218,6 +219,14 @@ private struct LineCheckReconcileDetailView: View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 12) {
                 header
+
+                if let saveStatusMessage {
+                    CorrectionStatusBanner(message: saveStatusMessage)
+                }
+
+                if pendingIssues.isEmpty && !correctedIssues.isEmpty {
+                    CorrectionStatusBanner(message: "All corrective actions completed")
+                }
 
                 if !pendingIssues.isEmpty {
                     issueSection(
@@ -365,6 +374,8 @@ private struct LineCheckReconcileDetailView: View {
                     return
                 }
 
+                saveStatusMessage = nil
+
                 let station = lineCheck.stations[issue.stationIndex]
                 var items = station.items
                 items[issue.itemIndex].correctiveNotes = newValue
@@ -484,41 +495,55 @@ private struct LineCheckReconcileDetailView: View {
         do {
             try await markCorrected(issue)
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = "Could not save correction. \(error.localizedDescription)"
         }
 
         activeIssueId = nil
     }
 
     private func markCorrected(_ issue: ReconcileIssue) async throws {
-        let station = lineCheck.stations[issue.stationIndex]
-        var items = station.items
-        var item = items[issue.itemIndex]
-        item.isCorrected = true
-        items[issue.itemIndex] = item
+        guard let itemId = issue.item.id else {
+            throw CorrectionSaveError.missingItemId
+        }
 
-        lineCheck.stations[issue.stationIndex] = LineCheckStationDto(
+        let notes = correctiveNotes(for: issue)
+        let savedItem = try await LineCheckItemApi.shared.updateCorrection(
+            itemId: itemId,
+            corrected: true,
+            correctiveNotes: notes
+        )
+
+        updateLineCheckItem(savedItem, stationIndex: issue.stationIndex, itemIndex: issue.itemIndex)
+        saveStatusMessage = nil
+
+        NotificationCenter.default.post(
+            name: .lineCheckCorrectionsDidChange,
+            object: nil,
+            userInfo: [
+                LineCheckCorrectionNotificationKey.lineCheckId: lineCheck.id,
+                LineCheckCorrectionNotificationKey.itemId: itemId
+            ]
+        )
+    }
+
+    private func updateLineCheckItem(
+        _ item: LineCheckItemDto,
+        stationIndex: Int,
+        itemIndex: Int
+    ) {
+        guard lineCheck.stations.indices.contains(stationIndex),
+              lineCheck.stations[stationIndex].items.indices.contains(itemIndex) else {
+            return
+        }
+
+        let station = lineCheck.stations[stationIndex]
+        var items = station.items
+        items[itemIndex] = item
+        lineCheck.stations[stationIndex] = LineCheckStationDto(
             id: station.id,
             stationName: station.stationName,
             items: items
         )
-
-        let savedLineCheck = try await LineCheckApi.shared.saveLineCheck(lineCheck)
-        guard savedLineCheck.containsCorrectedItem(withId: item.id) else {
-            throw CorrectionSaveError.notPersisted
-        }
-
-        lineCheck = savedLineCheck
-        if let itemId = item.id {
-            NotificationCenter.default.post(
-                name: .lineCheckCorrectionsDidChange,
-                object: nil,
-                userInfo: [
-                    LineCheckCorrectionNotificationKey.lineCheckId: lineCheck.id,
-                    LineCheckCorrectionNotificationKey.itemId: itemId
-                ]
-            )
-        }
     }
 
     private func jpegData(from image: UIImage) -> Data? {
@@ -559,6 +584,25 @@ private struct LineCheckReconcileDetailView: View {
         }
 
         return smallestData
+    }
+}
+
+private struct CorrectionStatusBanner: View {
+
+    let message: String
+
+    private var isSyncing: Bool {
+        message.localizedCaseInsensitiveContains("waiting for sync")
+    }
+
+    var body: some View {
+        Label(message, systemImage: isSyncing ? "arrow.triangle.2.circlepath" : "checkmark.circle")
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(isSyncing ? Color.blue : Color.green)
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background((isSyncing ? Color.blue : Color.green).opacity(0.12))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 }
 
@@ -644,7 +688,7 @@ private struct ReconcileIssue: Identifiable, Equatable {
     static func issues(in lineCheck: LineCheckDto, includeCorrected: Bool) -> [ReconcileIssue] {
         lineCheck.stations.enumerated().flatMap { stationIndex, station in
             station.items.enumerated().compactMap { itemIndex, item in
-                let reasons = correctionReasons(for: item)
+                let reasons = LineCheckCorrectionRules.correctionReasons(for: item)
                 guard !reasons.isEmpty else { return nil }
 
                 if !includeCorrected, item.isCorrected == true {
@@ -661,85 +705,6 @@ private struct ReconcileIssue: Identifiable, Equatable {
                 )
             }
         }
-    }
-
-    private static func correctionReasons(for item: LineCheckItemDto) -> [String] {
-        var reasons: [String] = []
-
-        if item.isMissing == true {
-            reasons.append("Missing")
-        }
-
-        if isOutOfTemperatureRange(item) {
-            reasons.append("Temp out of range")
-        }
-
-        reasons.append(contentsOf: failedCriterionReasons(for: item))
-
-        if hasIncorrectPrep(item) {
-            reasons.append("Prepared wrong")
-        }
-
-        return reasons
-    }
-
-    private static func isOutOfTemperatureRange(_ item: LineCheckItemDto) -> Bool {
-        guard let temperature = item.temperature else { return false }
-
-        if let minTemp = item.minTemp, temperature < minTemp {
-            return true
-        }
-
-        if let maxTemp = item.maxTemp, temperature > maxTemp {
-            return true
-        }
-
-        return false
-    }
-
-    private static func hasIncorrectPrep(_ item: LineCheckItemDto) -> Bool {
-        if item.criterionResponses?.isEmpty == false {
-            return false
-        }
-
-        return item.itemChecked == false
-    }
-
-    private static func failedCriterionReasons(for item: LineCheckItemDto) -> [String] {
-        item.criterionResponses?.compactMap { response in
-            if isMissingCriterion(response) {
-                return nil
-            }
-
-            let failed = response.requiresCorrection == true
-            || response.booleanAnswer == false
-            || isFailedNumber(response)
-
-            guard failed else { return nil }
-            return response.label ?? response.criterionName ?? "Criterion failed"
-        } ?? []
-    }
-
-    private static func isFailedNumber(_ response: LineCheckCriterionResponseDto) -> Bool {
-        guard let numberAnswer = response.numberAnswer else { return false }
-
-        if let minValue = response.minValue, numberAnswer < minValue {
-            return true
-        }
-
-        if let maxValue = response.maxValue, numberAnswer > maxValue {
-            return true
-        }
-
-        return false
-    }
-
-    private static func isMissingCriterion(_ response: LineCheckCriterionResponseDto) -> Bool {
-        [response.criterionType, response.responseType, response.criterionName, response.label]
-            .compactMap { $0 }
-            .joined(separator: " ")
-            .lowercased()
-            .contains("missing")
     }
 }
 
@@ -963,21 +928,12 @@ private struct ReconcileIssueCard: View {
 }
 
 private enum CorrectionSaveError: LocalizedError {
-    case notPersisted
+    case missingItemId
 
     var errorDescription: String? {
-        "The correction was sent, but the server did not save it as corrected. Please check that the backend save endpoint persists the corrected field."
-    }
-}
-
-private extension LineCheckDto {
-    func containsCorrectedItem(withId itemId: String?) -> Bool {
-        guard let itemId else { return false }
-
-        return stations.contains { station in
-            station.items.contains { item in
-                item.id == itemId && item.isCorrected == true
-            }
+        switch self {
+        case .missingItemId:
+            return "Line check item is missing an ID."
         }
     }
 }

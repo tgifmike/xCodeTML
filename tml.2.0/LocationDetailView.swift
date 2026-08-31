@@ -164,7 +164,7 @@ private extension LocationDetailView {
         for lineCheck in lineChecks {
             for station in lineCheck.stations {
                 count += station.items.filter { item in
-                    hasCorrectionIssue(item) && !isResolved(item)
+                    LineCheckCorrectionRules.hasCorrectionIssue(item) && !isResolved(item)
                 }.count
             }
         }
@@ -182,69 +182,6 @@ private extension LocationDetailView {
         }
 
         return locallyCorrectedItemIds.contains(itemId)
-    }
-
-    func hasCorrectionIssue(_ item: LineCheckItemDto) -> Bool {
-        item.isMissing == true ||
-        isOutOfTemperatureRange(item) ||
-        hasFailedCriteria(item) ||
-        hasIncorrectPrep(item)
-    }
-
-    func isOutOfTemperatureRange(_ item: LineCheckItemDto) -> Bool {
-        guard let temperature = item.temperature else { return false }
-
-        if let minTemp = item.minTemp, temperature < minTemp {
-            return true
-        }
-
-        if let maxTemp = item.maxTemp, temperature > maxTemp {
-            return true
-        }
-
-        return false
-    }
-
-    func hasIncorrectPrep(_ item: LineCheckItemDto) -> Bool {
-        if item.criterionResponses?.isEmpty == false {
-            return false
-        }
-
-        return item.itemChecked == false
-    }
-
-    func hasFailedCriteria(_ item: LineCheckItemDto) -> Bool {
-        return item.criterionResponses?.contains { response in
-            if isMissingCriterion(response) {
-                return false
-            }
-
-            return response.requiresCorrection == true ||
-            response.booleanAnswer == false ||
-            isFailedNumber(response)
-        } ?? false
-    }
-
-    func isFailedNumber(_ response: LineCheckCriterionResponseDto) -> Bool {
-        guard let numberAnswer = response.numberAnswer else { return false }
-
-        if let minValue = response.minValue, numberAnswer < minValue {
-            return true
-        }
-
-        if let maxValue = response.maxValue, numberAnswer > maxValue {
-            return true
-        }
-
-        return false
-    }
-
-    func isMissingCriterion(_ response: LineCheckCriterionResponseDto) -> Bool {
-        [response.criterionType, response.responseType, response.criterionName, response.label]
-            .compactMap { $0 }
-            .joined(separator: " ")
-            .lowercased()
-            .contains("missing")
     }
 
     var accountImage: some View {

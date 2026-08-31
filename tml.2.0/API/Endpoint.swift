@@ -8,7 +8,7 @@
 import Foundation
 
 enum HTTPMethod: String {
-    case GET, POST, PUT, DELETE
+    case GET, POST, PUT, PATCH, DELETE
 }
 
 struct Endpoint {
@@ -95,6 +95,17 @@ struct Endpoint {
                 path: "/line-checks/save",
                 method: .POST,
                 body: dto
+            )
+        }
+
+        static func updateLineCheckItemCorrection(
+            itemId: String,
+            request: LineCheckItemCorrectionRequest
+        ) -> Endpoint {
+            Endpoint(
+                path: "/line-check-items/\(itemId.urlPathSegmentEncoded)/correction",
+                method: .PATCH,
+                body: request
             )
         }
 
