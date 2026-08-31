@@ -6,10 +6,6 @@ extension LineCheckItemState {
             return !observations.isEmpty
         }
 
-        if item.tempTaken && temperature.isEmpty {
-            return false
-        }
-
         if failedItemRequiresObservation {
             return false
         }
@@ -35,12 +31,15 @@ extension LineCheckItemState {
     var validationMessage: String? {
         let itemName = item.itemName ?? "This item"
 
-        if item.tempTaken && temperature.isEmpty {
-            return "\(itemName) needs a temperature before saving."
-        }
-
         if failedItemRequiresObservation {
-            return "\(itemName) has failed due to temperature not in bounds, item not prepared correctly, or item missing. Please leave an observation."
+            let reasons = detailedFailureReasons
+
+            if reasons.count == 1, let reason = reasons.first {
+                return "\(itemName) has failed: \(reason) This failure requires an observation to be entered."
+            }
+
+            let bullets = reasons.map { "- \($0)" }.joined(separator: "\n")
+            return "\(itemName) has failed:\n\(bullets)\nThese failures require an observation to be entered."
         }
 
         if !isCompleteForLineCheck {
@@ -56,8 +55,13 @@ extension LineCheckItemState {
         }
 
         if isTemperatureCriterion(response) {
-            guard !temperature.isEmpty else { return false }
-            return !requiresFailureNotes(response) || !isFailedTemperature || !observations.isEmpty
+            guard !temperature.isEmpty else {
+                return !requiresFailureNotes(response) || !observations.isEmpty
+            }
+
+            return !requiresFailureNotes(response)
+            || !isFailedOrMissingRequiredTemperature(response)
+            || !observations.isEmpty
         }
 
         if isBooleanCriterion(response) {
@@ -171,18 +175,122 @@ extension LineCheckItemState {
                 return false
             }
 
+            if isTemperatureCriterion(response) {
+                return isFailedOrMissingRequiredTemperature(response)
+            }
+
             if isBooleanCriterion(response), response.booleanAnswer == false {
                 return true
             }
 
-            if isNumberCriterion(response),
-               let answer = response.numberAnswer,
-               isFailedNumber(answer, response: response) {
-                return true
+            if isNumberCriterion(response) {
+                return isFailedOrMissingRequiredNumber(response)
             }
 
             return false
         } ?? false
+    }
+
+    private var detailedFailureReasons: [String] {
+        var reasons: [String] = []
+
+        if isMissing {
+            reasons.append("Item is marked missing.")
+        }
+
+        if isFailedTemperature {
+            reasons.append(temperatureFailureReason(value: Float(temperature), min: item.minTemp, max: item.maxTemp))
+        }
+
+        if isChecked == false {
+            reasons.append("Item was marked fail.")
+        }
+
+        item.criterionResponses?.forEach { response in
+            if isMissingCriterion(response) {
+                return
+            }
+
+            let name = response.label ?? response.criterionName ?? "Criterion"
+
+            if isTemperatureCriterion(response) {
+                if temperature.isEmpty, response.required == true {
+                    reasons.append("\(name) is required but was not entered.")
+                } else if isFailedOrMissingRequiredTemperature(response) {
+                    reasons.append(temperatureFailureReason(value: Float(temperature), min: response.minValue, max: response.maxValue))
+                }
+            } else if isBooleanCriterion(response), response.booleanAnswer == false {
+                reasons.append("\(name) was marked fail.")
+            } else if isNumberCriterion(response) {
+                if response.numberAnswer == nil, response.required == true {
+                    reasons.append("\(name) is required but was not entered.")
+                } else if let answer = response.numberAnswer,
+                          isFailedNumber(answer, response: response) {
+                    reasons.append(numberFailureReason(name: name, value: answer, response: response))
+                }
+            } else if response.requiresCorrection == true {
+                reasons.append("\(name) requires correction.")
+            }
+        }
+
+        return reasons.isEmpty ? ["Correction is required."] : reasons
+    }
+
+    private func isFailedOrMissingRequiredTemperature(_ response: LineCheckCriterionResponseDto) -> Bool {
+        guard !temperature.isEmpty else {
+            return response.required == true
+        }
+
+        guard let value = Float(temperature) else {
+            return response.required == true
+        }
+
+        return isFailedNumber(value, response: response)
+    }
+
+    private func isFailedOrMissingRequiredNumber(_ response: LineCheckCriterionResponseDto) -> Bool {
+        guard let answer = response.numberAnswer else {
+            return response.required == true
+        }
+
+        return isFailedNumber(answer, response: response)
+    }
+
+    private func numberFailureReason(
+        name: String,
+        value: Float,
+        response: LineCheckCriterionResponseDto
+    ) -> String {
+        let unit = response.unit.map { " \($0)" } ?? ""
+        return "\(name) was \(formattedNumber(value))\(unit); acceptable range is \(formattedRange(min: response.minValue, max: response.maxValue))\(unit)."
+    }
+
+    private func temperatureFailureReason(value: Float?, min: Float?, max: Float?) -> String {
+        guard let value else {
+            return "Temperature is outside the acceptable range."
+        }
+
+        return "Temperature was \(formattedNumber(value)); acceptable range is \(formattedRange(min: min, max: max))."
+    }
+
+    private func formattedRange(min: Float?, max: Float?) -> String {
+        switch (min, max) {
+        case let (min?, max?):
+            return "\(formattedNumber(min))-\(formattedNumber(max))"
+        case let (min?, nil):
+            return "at least \(formattedNumber(min))"
+        case let (nil, max?):
+            return "no more than \(formattedNumber(max))"
+        default:
+            return "the configured range"
+        }
+    }
+
+    private func formattedNumber(_ value: Float) -> String {
+        let formatter = NumberFormatter()
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = 1
+        return formatter.string(from: NSNumber(value: value)) ?? "\(value)"
     }
 
     private func isFailedNumber(_ value: Float, response: LineCheckCriterionResponseDto) -> Bool {

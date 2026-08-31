@@ -20,6 +20,9 @@ struct LineCheckItemDto: Identifiable, Codable, Equatable {
     let maxTemp: Float?
     var observations: String?
     var correctiveNotes: String?
+    var correctedBy: String?
+    var correctedByName: String?
+    var correctedAt: Date?
     var isMissing: Bool?
     var isCorrected: Bool?
     var criterionResponses: [LineCheckCriterionResponseDto]?
@@ -44,6 +47,9 @@ struct LineCheckItemDto: Identifiable, Codable, Equatable {
         case maxTemp
         case observations
         case correctiveNotes
+        case correctedBy
+        case correctedByName
+        case correctedAt
         case isMissing
         case missing
         case isCorrected
@@ -72,6 +78,9 @@ struct LineCheckItemDto: Identifiable, Codable, Equatable {
         maxTemp = try container.decodeIfPresent(Float.self, forKey: .maxTemp)
         observations = try container.decodeIfPresent(String.self, forKey: .observations)
         correctiveNotes = try container.decodeIfPresent(String.self, forKey: .correctiveNotes)
+        correctedBy = try container.decodeIfPresent(String.self, forKey: .correctedBy)
+        correctedByName = try container.decodeIfPresent(String.self, forKey: .correctedByName)
+        correctedAt = try container.decodeIfPresent(Date.self, forKey: .correctedAt)
         isMissing = try container.decodeIfPresent(Bool.self, forKey: .isMissing)
         ?? container.decodeIfPresent(Bool.self, forKey: .missing)
         isCorrected = try container.decodeIfPresent(Bool.self, forKey: .isCorrected)
@@ -102,6 +111,9 @@ struct LineCheckItemDto: Identifiable, Codable, Equatable {
         try container.encodeIfPresent(maxTemp, forKey: .maxTemp)
         try container.encodeIfPresent(observations, forKey: .observations)
         try container.encodeIfPresent(correctiveNotes, forKey: .correctiveNotes)
+        try container.encodeIfPresent(correctedBy, forKey: .correctedBy)
+        try container.encodeIfPresent(correctedByName, forKey: .correctedByName)
+        try container.encodeIfPresent(correctedAt, forKey: .correctedAt)
         try container.encodeIfPresent(isMissing, forKey: .isMissing)
         try container.encodeIfPresent(isMissing, forKey: .missing)
         try container.encodeIfPresent(isCorrected, forKey: .isCorrected)

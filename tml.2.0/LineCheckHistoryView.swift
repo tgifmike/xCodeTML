@@ -146,69 +146,8 @@ private struct LineCheckHistoryRow: View {
     var issueCount: Int {
         lineCheck.stations.reduce(0) { total, station in
             total + station.items.filter { item in
-                item.isMissing == true ||
-                isOutOfTemperatureRange(item) ||
-                hasFailedCriteria(item) ||
-                hasIncorrectPrep(item)
+                LineCheckCorrectionRules.hasCorrectionIssue(item)
             }.count
         }
-    }
-
-    func isOutOfTemperatureRange(_ item: LineCheckItemDto) -> Bool {
-        guard let temperature = item.temperature else {
-            return false
-        }
-
-        if let minTemp = item.minTemp, temperature < minTemp {
-            return true
-        }
-
-        if let maxTemp = item.maxTemp, temperature > maxTemp {
-            return true
-        }
-
-        return false
-    }
-
-    func hasIncorrectPrep(_ item: LineCheckItemDto) -> Bool {
-        if item.criterionResponses?.isEmpty == false {
-            return false
-        }
-
-        return item.itemChecked == false
-    }
-
-    func hasFailedCriteria(_ item: LineCheckItemDto) -> Bool {
-        item.criterionResponses?.contains { response in
-            if isMissingCriterion(response) {
-                return false
-            }
-
-            return response.requiresCorrection == true
-            || response.booleanAnswer == false
-            || isFailedNumber(response)
-        } ?? false
-    }
-
-    func isMissingCriterion(_ response: LineCheckCriterionResponseDto) -> Bool {
-        [response.criterionType, response.responseType, response.criterionName, response.label]
-            .compactMap { $0 }
-            .joined(separator: " ")
-            .lowercased()
-            .contains("missing")
-    }
-
-    func isFailedNumber(_ response: LineCheckCriterionResponseDto) -> Bool {
-        guard let numberAnswer = response.numberAnswer else { return false }
-
-        if let minValue = response.minValue, numberAnswer < minValue {
-            return true
-        }
-
-        if let maxValue = response.maxValue, numberAnswer > maxValue {
-            return true
-        }
-
-        return false
     }
 }

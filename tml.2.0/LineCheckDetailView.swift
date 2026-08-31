@@ -142,40 +142,38 @@ struct LineCheckDetailView: View {
 //        }
 //    }
     
+    @ViewBuilder
     private var mainView: some View {
+        if isReadOnly {
+            historyView
+        } else {
+            editableLineCheckView
+        }
+    }
 
+    private var editableLineCheckView: some View {
         let stationNames = Array(
             Set(vm.items.map(\.stationName))
         ).sorted()
 
         return ScrollViewReader { scrollProxy in
             VStack(spacing: 0) {
-
-                // TOP STICKY PROGRESS
                 progressHeader
                     .padding(.horizontal)
                     .padding(.top, 4)
                     .background(.ultraThinMaterial)
                     .zIndex(1)
 
-                // SCROLL CONTENT
                 ScrollView {
-
                     LazyVStack(spacing: 12) {
-
                         headerSection
 
-                        if isReadOnly {
-                            readOnlyBanner
-                        }
-
                         ForEach(stationNames, id: \.self) { stationName in
-
                             LineCheckStationSection(
                                 stationName: stationName,
                                 items: bindingForStation(stationName),
                                 focusedField: $focusedField,
-                                isReadOnly: isReadOnly
+                                isReadOnly: false
                             )
                         }
 
@@ -186,30 +184,36 @@ struct LineCheckDetailView: View {
                     .padding(.top, 4)
                 }
                 .scrollDismissesKeyboard(.interactively)
-                
-                if !isReadOnly {
-                    // BOTTOM STICKY SAVE BUTTON
-                    VStack {
 
-                        saveButton(scrollProxy: scrollProxy)
-                    }
-                    .padding()
-                    .background(.ultraThinMaterial)
+                VStack {
+                    saveButton(scrollProxy: scrollProxy)
                 }
-                
+                .padding()
+                .background(.ultraThinMaterial)
             }
         }
-//        .toolbar {
-//
-//            ToolbarItemGroup(placement: .keyboard) {
-//
-//                Spacer()
-//
-//                Button("Done") {
-//                    focusedField = nil
-//                }
-//            }
-//        }
+    }
+
+    private var historyView: some View {
+        let stationNames = Array(
+            Set(vm.items.map(\.stationName))
+        ).sorted()
+
+        return ScrollView {
+            LazyVStack(spacing: 12) {
+                headerSection
+                readOnlyBanner
+
+                ForEach(stationNames, id: \.self) { stationName in
+                    LineCheckHistoryStationSection(
+                        stationName: stationName,
+                        items: vm.items.filter { $0.stationName == stationName }
+                    )
+                }
+            }
+            .padding()
+            .padding(.top, 4)
+        }
     }
 
     // MARK: BINDING
@@ -415,5 +419,290 @@ struct LineCheckDetailView: View {
         }
         .buttonStyle(.borderedProminent)
         .disabled(vm.isSaving || !vm.hasChanges)
+    }
+}
+
+private struct LineCheckHistoryStationSection: View {
+
+    let stationName: String
+    let items: [LineCheckItemState]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Label(stationName, systemImage: "square.grid.2x2")
+                    .font(.headline)
+
+                Spacer()
+
+                Text("\(items.count)")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.primary.opacity(0.06))
+                    .clipShape(Capsule())
+            }
+            .padding(.horizontal, 2)
+
+            ForEach(items) { item in
+                LineCheckHistoryItemCard(item: item)
+            }
+        }
+    }
+}
+
+private struct LineCheckHistoryItemCard: View {
+
+    let item: LineCheckItemState
+
+    private var dto: LineCheckItemDto {
+        item.item
+    }
+
+    private var correctionReasons: [String] {
+        LineCheckCorrectionRules.correctionReasons(for: dto)
+    }
+
+    private var hasFailure: Bool {
+        !correctionReasons.isEmpty
+    }
+
+    private var hasCorrectionDetails: Bool {
+        dto.isCorrected == true ||
+        dto.correctiveNotes?.isEmpty == false ||
+        dto.correctedByName?.isEmpty == false ||
+        dto.correctedAt != nil
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 10) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(dto.itemName ?? "Unnamed Item")
+                        .font(.headline)
+
+                    Text(statusText)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(statusColor)
+                }
+
+                Spacer()
+
+                Image(systemName: statusIcon)
+                    .foregroundStyle(statusColor)
+                    .font(.title3)
+            }
+
+            if hasFailure {
+                FlowBadgeGroup(items: correctionReasons, color: .orange)
+            }
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Original Answers")
+                    .font(.subheadline.weight(.semibold))
+
+                ForEach(originalAnswerRows, id: \.title) { row in
+                    HistoryAnswerRow(title: row.title, value: row.value)
+                }
+            }
+
+            if let observations = dto.observations,
+               !observations.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                HistoryNoteBlock(title: "Observation", text: observations)
+            }
+
+            if hasCorrectionDetails {
+                Divider()
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Correction")
+                        .font(.subheadline.weight(.semibold))
+
+                    if dto.isCorrected == true {
+                        Label("Marked corrected", systemImage: "checkmark.circle.fill")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.green)
+                    }
+
+                    if let correctedBy = dto.correctedByName, !correctedBy.isEmpty {
+                        HistoryAnswerRow(title: "Corrected By", value: correctedBy)
+                    }
+
+                    if let correctedAt = dto.correctedAt {
+                        HistoryAnswerRow(title: "Corrected At", value: formattedDate(correctedAt))
+                    }
+
+                    if let notes = dto.correctiveNotes,
+                       !notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        HistoryNoteBlock(title: "Correction Notes", text: notes)
+                    }
+                }
+            }
+        }
+        .padding(14)
+        .background(Color(.systemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+        }
+    }
+
+    private var statusText: String {
+        if dto.isCorrected == true {
+            return "Corrected"
+        }
+
+        return hasFailure ? "Needs Correction" : "Passed"
+    }
+
+    private var statusIcon: String {
+        if dto.isCorrected == true {
+            return "checkmark.circle.fill"
+        }
+
+        return hasFailure ? "exclamationmark.triangle.fill" : "checkmark.circle"
+    }
+
+    private var statusColor: Color {
+        if dto.isCorrected == true {
+            return .green
+        }
+
+        return hasFailure ? .orange : .green
+    }
+
+    private var originalAnswerRows: [(title: String, value: String)] {
+        var rows: [(String, String)] = []
+
+        if dto.isMissing == true {
+            rows.append(("Missing", "Yes"))
+        }
+
+        if let temperature = dto.temperature {
+            rows.append(("Temperature", "\(formattedNumber(temperature)) F"))
+        }
+
+        if dto.criterionResponses?.isEmpty == false {
+            dto.criterionResponses?.forEach { response in
+                rows.append((criterionLabel(for: response), answerText(for: response)))
+            }
+        } else if dto.checkMark {
+            rows.append(("Prepared Correctly", dto.itemChecked == true ? "Pass" : "Fail"))
+        }
+
+        return rows.isEmpty ? [("Result", dto.itemChecked == false ? "Fail" : "Pass")] : rows
+    }
+
+    private func criterionLabel(for response: LineCheckCriterionResponseDto) -> String {
+        response.label ?? response.criterionName ?? "Criterion"
+    }
+
+    private func answerText(for response: LineCheckCriterionResponseDto) -> String {
+        if let booleanAnswer = response.booleanAnswer {
+            return booleanAnswer ? "Pass" : "Fail"
+        }
+
+        if let numberAnswer = response.numberAnswer {
+            let unit = response.unit.map { " \($0)" } ?? ""
+            return "\(formattedNumber(numberAnswer))\(unit)"
+        }
+
+        if let textAnswer = response.textAnswer, !textAnswer.isEmpty {
+            return textAnswer
+        }
+
+        if let notes = response.notes, !notes.isEmpty {
+            return notes
+        }
+
+        return response.required == true ? "Not answered" : "-"
+    }
+
+    private func formattedDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
+    }
+
+    private func formattedNumber(_ value: Float) -> String {
+        let formatter = NumberFormatter()
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = 1
+        return formatter.string(from: NSNumber(value: value)) ?? "\(value)"
+    }
+}
+
+private struct HistoryAnswerRow: View {
+
+    let title: String
+    let value: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .frame(width: 130, alignment: .leading)
+
+            Text(value)
+                .font(.caption.weight(.medium))
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+}
+
+private struct HistoryNoteBlock: View {
+
+    let title: String
+    let text: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Text(text)
+                .font(.callout)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(10)
+                .background(Color(.secondarySystemBackground))
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        }
+    }
+}
+
+private struct FlowBadgeGroup: View {
+
+    let items: [String]
+    let color: Color
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 8) {
+                badges
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                badges
+            }
+        }
+    }
+
+    private var badges: some View {
+        ForEach(items, id: \.self) { item in
+            Text(item)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(color)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(color.opacity(0.12))
+                .clipShape(Capsule())
+        }
     }
 }

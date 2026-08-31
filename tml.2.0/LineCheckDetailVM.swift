@@ -110,7 +110,7 @@ final class LineCheckDetailVM: ObservableObject {
 
             if isTemperatureCriterion(response) {
                 updated.numberAnswer = Float(item.temperature)
-                let failed = isFailedTemperature(item)
+                let failed = isFailedOrMissingRequiredTemperature(item, response: response)
                 updated.requiresCorrection = failed
                 if failed, !item.observations.isEmpty {
                     updated.notes = item.observations
@@ -151,7 +151,7 @@ final class LineCheckDetailVM: ObservableObject {
             }
 
             if isTemperatureCriterion(response) {
-                return isFailedTemperature(item)
+                return isFailedOrMissingRequiredTemperature(item, response: response)
             }
 
             if isBooleanCriterion(response) {
@@ -214,6 +214,21 @@ final class LineCheckDetailVM: ObservableObject {
 
     private func requiresFailureNotes(_ response: LineCheckCriterionResponseDto) -> Bool {
         response.requireNotesOnFailure ?? false
+    }
+
+    private func isFailedOrMissingRequiredTemperature(
+        _ item: LineCheckItemState,
+        response: LineCheckCriterionResponseDto
+    ) -> Bool {
+        guard !item.temperature.isEmpty else {
+            return response.required == true
+        }
+
+        guard let value = Float(item.temperature) else {
+            return response.required == true
+        }
+
+        return isFailedNumber(value, response: response)
     }
 
     private func isFailedTemperature(_ item: LineCheckItemState) -> Bool {

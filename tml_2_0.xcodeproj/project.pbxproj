@@ -13,6 +13,8 @@
 		3D3AD24D2F4E2CE2005F14E5 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 3D3AD24C2F4E2CE2005F14E5 /* GoogleSignInSwift */; };
 		3D3F7B5E303E5D2C008D9EEF /* LineCheckCriterionResponseDto.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D3F7B5D303E5D2C008D9EEF /* LineCheckCriterionResponseDto.swift */; };
 		3D3F7B60303F1072008D9EEF /* LineCheckItemState+Completion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D3F7B5F303F1072008D9EEF /* LineCheckItemState+Completion.swift */; };
+		3D3F7B6230435736008D9EEF /* LineCheckCorrectionRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D3F7B6130435736008D9EEF /* LineCheckCorrectionRules.swift */; };
+		3D3F7B643044CA36008D9EEF /* LineCheckItemApi.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D3F7B633044CA36008D9EEF /* LineCheckItemApi.swift */; };
 		3D54417E2FAB46AD00DC73D9 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3D5441702FAB46AD00DC73D9 /* GoogleService-Info.plist */; };
 		3D54417F2FAB46AD00DC73D9 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3D54416F2FAB46AD00DC73D9 /* Assets.xcassets */; };
 		3D5441802FAB46AD00DC73D9 /* StationApi.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D5441512FAB46AD00DC73D9 /* StationApi.swift */; };
@@ -77,6 +79,8 @@
 		3D3AD2372F4E2B9C005F14E5 /* tml.2.0.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = tml.2.0.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3D3F7B5D303E5D2C008D9EEF /* LineCheckCriterionResponseDto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineCheckCriterionResponseDto.swift; sourceTree = "<group>"; };
 		3D3F7B5F303F1072008D9EEF /* LineCheckItemState+Completion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "LineCheckItemState+Completion.swift"; sourceTree = "<group>"; };
+		3D3F7B6130435736008D9EEF /* LineCheckCorrectionRules.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineCheckCorrectionRules.swift; sourceTree = "<group>"; };
+		3D3F7B633044CA36008D9EEF /* LineCheckItemApi.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineCheckItemApi.swift; sourceTree = "<group>"; };
 		3D54414A2FAB46AD00DC73D9 /* AccountApi.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountApi.swift; sourceTree = "<group>"; };
 		3D54414B2FAB46AD00DC73D9 /* AnyEncodable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnyEncodable.swift; sourceTree = "<group>"; };
 		3D54414C2FAB46AD00DC73D9 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
@@ -187,6 +191,7 @@
 				3D5441522FAB46AD00DC73D9 /* UserApi.swift */,
 				3D61F0173036187300E05ED5 /* LineCheckPhotoApi.swift */,
 				3D15087D30361EF30021DBF2 /* String+URLPathSegment.swift */,
+				3D3F7B633044CA36008D9EEF /* LineCheckItemApi.swift */,
 			);
 			path = API;
 			sourceTree = "<group>";
@@ -239,6 +244,7 @@
 				3D61F0153036186B00E05ED5 /* LineCheckPhotoDto.swift */,
 				3D3F7B5D303E5D2C008D9EEF /* LineCheckCriterionResponseDto.swift */,
 				3D3F7B5F303F1072008D9EEF /* LineCheckItemState+Completion.swift */,
+				3D3F7B6130435736008D9EEF /* LineCheckCorrectionRules.swift */,
 			);
 			path = Model;
 			sourceTree = "<group>";
@@ -394,6 +400,7 @@
 				3D15087E30361EF30021DBF2 /* String+URLPathSegment.swift in Sources */,
 				3D934E3E2FB4A7BA00DC81AA /* SplashView.swift in Sources */,
 				3D54418E2FAB46AD00DC73D9 /* LineCheckDetailView.swift in Sources */,
+				3D3F7B643044CA36008D9EEF /* LineCheckItemApi.swift in Sources */,
 				3D54418F2FAB46AD00DC73D9 /* Session.swift in Sources */,
 				3D5441902FAB46AD00DC73D9 /* LineCheckApi.swift in Sources */,
 				3D5441912FAB46AD00DC73D9 /* AppSettings.swift in Sources */,
@@ -408,6 +415,7 @@
 				3D150880303646CB0021DBF2 /* LineCheckReconcileView.swift in Sources */,
 				3D5441972FAB46AD00DC73D9 /* CreateLineCheckRequest.swift in Sources */,
 				3D5441982FAB46AD00DC73D9 /* StationChip.swift in Sources */,
+				3D3F7B6230435736008D9EEF /* LineCheckCorrectionRules.swift in Sources */,
 				3D934E402FB4ACD500DC81AA /* AutoLogoutInterval.swift in Sources */,
 				3D5441992FAB46AD00DC73D9 /* LocationStationsView.swift in Sources */,
 				3D54419A2FAB46AD00DC73D9 /* CustomAlertView.swift in Sources */,
@@ -584,7 +592,7 @@
 					"@executable_path/Frameworks",
 				);
 				"LD_RUNPATH_SEARCH_PATHS[arch=*]" = "@loader_path/Frameworks";
-				MARKETING_VERSION = 2.1.1;
+				MARKETING_VERSION = 2.1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.themanagerlife.tml-2-0";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -621,7 +629,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.1.1;
+				MARKETING_VERSION = 2.1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.themanagerlife.tml-2-0";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
