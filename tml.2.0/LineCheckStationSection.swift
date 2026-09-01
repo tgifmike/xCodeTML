@@ -3,6 +3,8 @@ import SwiftUI
 struct LineCheckStationSection: View {
 
     let stationName: String
+    let lineCheckId: String
+    let locationId: String
 
     @Binding var items: [LineCheckItemState]
 
@@ -64,6 +66,8 @@ struct LineCheckStationSection: View {
                     LineCheckItemRow(
                         item: $items[index],
                         focusedField: $focusedField,
+                        lineCheckId: lineCheckId,
+                        locationId: locationId,
                         isReadOnly: isReadOnly,
                         onFinalizeAction: collapseIfComplete
                     )

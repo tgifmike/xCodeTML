@@ -10,9 +10,11 @@ struct AccountDetailView: View {
     
     let account: Account
 
+    @StateObject private var offlineNavigationStore = OfflineAccountLocationStore.shared
     @State private var locations: [Location] = []
     @State private var isLoading = false
     @State private var hasLoaded = false
+    @State private var isUsingOfflineLocations = false
     @State private var showInactive = false
 
     var body: some View {
@@ -33,6 +35,10 @@ private extension AccountDetailView {
         VStack(alignment: .leading, spacing: 16) {
 
             header
+
+            if isUsingOfflineLocations {
+                offlineLocationsBanner
+            }
 
             if isLoading {
                 ProgressView("Loading locations...")
@@ -79,6 +85,34 @@ private extension AccountDetailView {
             }
             .padding(.top, 4)
         }
+    }
+
+    var offlineLocationsBanner: some View {
+        Label(
+            offlineLocationsText,
+            systemImage: "wifi.slash"
+        )
+        .font(.subheadline.weight(.medium))
+        .foregroundStyle(.orange)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(Color.orange.opacity(0.10))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    var offlineLocationsText: String {
+        guard let cachedAt = offlineNavigationStore.cachedLocationsAt(for: account.id) else {
+            return "Using saved locations from this device"
+        }
+
+        return "Using saved locations from \(formattedCacheDate(cachedAt))"
+    }
+
+    func formattedCacheDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
     }
 
     var accountImage: some View {
@@ -171,9 +205,19 @@ private extension AccountDetailView {
             locations = try await LocationApi.shared.getLocationsForAccount(
                 accountId: account.id
             )
+            offlineNavigationStore.cacheLocations(locations, accountId: account.id)
+            isUsingOfflineLocations = false
         } catch {
             print("❌ Failed to load locations:", error)
-            locations = []
+
+            let cachedLocations = offlineNavigationStore.cachedLocations(for: account.id)
+            if cachedLocations.isEmpty {
+                locations = []
+                isUsingOfflineLocations = false
+            } else {
+                locations = cachedLocations
+                isUsingOfflineLocations = true
+            }
         }
     }
 }

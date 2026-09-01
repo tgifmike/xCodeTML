@@ -7,12 +7,15 @@ struct LineCheckItemRow: View {
     @Binding var item: LineCheckItemState
     @FocusState.Binding var focusedField: LineCheckField?
 
+    let lineCheckId: String
+    let locationId: String
     let isReadOnly: Bool
     let onFinalizeAction: () -> Void
 
     @Environment(\.horizontalSizeClass)
     private var horizontalSizeClass
 
+    @StateObject private var photoStore = OfflineLineCheckPhotoStore.shared
     @State private var photos: [LineCheckPhotoDto] = []
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var isShowingCamera = false
@@ -1099,7 +1102,17 @@ struct LineCheckItemRow: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
                         ForEach(photos) { photo in
-                            photoThumbnail(photo)
+                            VStack(spacing: 4) {
+                                photoThumbnail(photo)
+
+                                if isPendingPhoto(photo) {
+                                    Text("Waiting to upload")
+                                        .font(.caption2.weight(.semibold))
+                                        .foregroundStyle(.orange)
+                                        .lineLimit(1)
+                                }
+                            }
+                            .frame(width: 112)
                         }
                     }
                     .padding(.vertical, 2)
@@ -1163,6 +1176,10 @@ struct LineCheckItemRow: View {
         Image(systemName: "photo")
             .font(.title2)
             .foregroundStyle(.secondary)
+    }
+
+    private func isPendingPhoto(_ photo: LineCheckPhotoDto) -> Bool {
+        photo.id.hasPrefix("pending-photo-")
     }
 
     // MARK: Correction History
@@ -1321,11 +1338,16 @@ struct LineCheckItemRow: View {
         photoError = nil
 
         do {
-            photos = try await LineCheckPhotoApi.shared.getPhotos(
+            let remotePhotos = try await LineCheckPhotoApi.shared.getPhotos(
                 lineCheckItemId: lineCheckItemId
             )
+            photos = remotePhotos + pendingPhotos
         } catch {
-            photoError = error.localizedDescription
+            photos = pendingPhotos
+
+            if !shouldQueueOffline(error) {
+                photoError = error.localizedDescription
+            }
         }
 
         isLoadingPhotos = false
@@ -1359,33 +1381,122 @@ struct LineCheckItemRow: View {
         isUploadingPhoto = true
         photoError = nil
 
+        let criterionResponseId = activeCriterionPhotoResponseId
+        let fileName = "line-check-\(lineCheckItemId)-\(UUID().uuidString).jpg"
+        let photoType: LineCheckPhotoType = criterionResponseId == nil ? .item : .criterion
+
         do {
-            let criterionResponseId = activeCriterionPhotoResponseId
+            if lineCheckId.hasPrefix("offline-") {
+                try queuePhoto(
+                    imageData: imageData,
+                    fileName: fileName,
+                    photoType: photoType,
+                    criterionResponseId: criterionResponseId
+                )
+            } else {
+                _ = try await LineCheckPhotoApi.shared.uploadPhoto(
+                    lineCheckItemId: lineCheckItemId,
+                    imageData: imageData,
+                    fileName: fileName,
+                    photoType: photoType,
+                    notes: item.observations,
+                    criterionResponseId: criterionResponseId
+                )
 
-            _ = try await LineCheckPhotoApi.shared.uploadPhoto(
-                lineCheckItemId: lineCheckItemId,
-                imageData: imageData,
-                fileName: "line-check-\(lineCheckItemId)-\(UUID().uuidString).jpg",
-                photoType: criterionResponseId == nil ? .item : .criterion,
-                notes: item.observations,
-                criterionResponseId: criterionResponseId
-            )
-
-            if let criterionResponseId,
-               let index = item.item.criterionResponses?.firstIndex(where: { $0.id == criterionResponseId }) {
-                let currentCount = item.item.criterionResponses?[index].photoCount ?? 0
-                item.item.criterionResponses?[index].photoCount = currentCount + 1
-                activeCriterionPhotoResponseId = nil
+                photos = try await LineCheckPhotoApi.shared.getPhotos(
+                    lineCheckItemId: lineCheckItemId
+                )
             }
 
-            photos = try await LineCheckPhotoApi.shared.getPhotos(
-                lineCheckItemId: lineCheckItemId
-            )
+            markCriterionPhotoAdded(criterionResponseId)
         } catch {
-            photoError = error.localizedDescription
+            if shouldQueueOffline(error) {
+                do {
+                    try queuePhoto(
+                        imageData: imageData,
+                        fileName: fileName,
+                        photoType: photoType,
+                        criterionResponseId: criterionResponseId
+                    )
+                    markCriterionPhotoAdded(criterionResponseId)
+                } catch {
+                    photoError = error.localizedDescription
+                }
+            } else {
+                photoError = error.localizedDescription
+            }
         }
 
         isUploadingPhoto = false
+    }
+
+    private func queuePhoto(
+        imageData: Data,
+        fileName: String,
+        photoType: LineCheckPhotoType,
+        criterionResponseId: String?
+    ) throws {
+        let pending = try photoStore.enqueue(
+            lineCheckId: lineCheckId,
+            locationId: locationId,
+            lineCheckItemId: lineCheckItemId,
+            stationName: item.stationName,
+            itemName: item.item.itemName ?? "",
+            criterionResponseId: criterionResponseId,
+            criterionLabel: criterionLabel(for: criterionResponseId),
+            imageData: imageData,
+            fileName: fileName,
+            photoType: photoType,
+            notes: item.observations
+        )
+
+        photos.append(pending)
+        photoError = "Photo saved offline. It will upload during sync."
+    }
+
+    private func markCriterionPhotoAdded(_ criterionResponseId: String?) {
+        guard let criterionResponseId,
+              let index = item.item.criterionResponses?.firstIndex(where: { $0.id == criterionResponseId }) else {
+            return
+        }
+
+        let currentCount = item.item.criterionResponses?[index].photoCount ?? 0
+        item.item.criterionResponses?[index].photoCount = currentCount + 1
+        activeCriterionPhotoResponseId = nil
+    }
+
+    private func criterionLabel(for criterionResponseId: String?) -> String? {
+        guard let criterionResponseId else { return nil }
+
+        guard let response = item.item.criterionResponses?.first(where: { $0.id == criterionResponseId }) else {
+            return nil
+        }
+
+        return response.label ?? response.criterionName
+    }
+
+    private var pendingPhotos: [LineCheckPhotoDto] {
+        photoStore.pendingDtos(
+            lineCheckId: lineCheckId,
+            itemId: lineCheckItemId,
+            itemName: item.item.itemName ?? ""
+        )
+    }
+
+    private func shouldQueueOffline(_ error: Error) -> Bool {
+        guard let urlError = error as? URLError else { return false }
+
+        switch urlError.code {
+        case .notConnectedToInternet,
+             .networkConnectionLost,
+             .cannotConnectToHost,
+             .cannotFindHost,
+             .dnsLookupFailed,
+             .timedOut:
+            return true
+        default:
+            return false
+        }
     }
 
     private func jpegData(from image: UIImage) -> Data? {

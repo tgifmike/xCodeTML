@@ -65,7 +65,7 @@ struct LineCheckDetailView: View {
 
         } message: {
 
-            Text("Line Check saved successfully.")
+            Text(vm.saveSuccessMessage)
         }
     }
 
@@ -171,6 +171,8 @@ struct LineCheckDetailView: View {
                         ForEach(stationNames, id: \.self) { stationName in
                             LineCheckStationSection(
                                 stationName: stationName,
+                                lineCheckId: vm.lineCheck?.id ?? lineCheckId,
+                                locationId: locationId,
                                 items: bindingForStation(stationName),
                                 focusedField: $focusedField,
                                 isReadOnly: false
@@ -391,7 +393,12 @@ struct LineCheckDetailView: View {
             }
 
             Task {
-                await vm.save(current: vm.lineCheck)
+                await vm.save(
+                    current: vm.lineCheck,
+                    locationId: locationId,
+                    locationName: locationName,
+                    accountName: accountName
+                )
                 
                 if vm.saveSuccess {
                     if let onComplete {

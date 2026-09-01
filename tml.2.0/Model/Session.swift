@@ -1,4 +1,4 @@
-struct UserSession {
+struct UserSession: Codable {
     let jwt: String
     let userId: String
     let userName: String
