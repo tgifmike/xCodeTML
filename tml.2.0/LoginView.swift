@@ -5,6 +5,7 @@ import AuthenticationServices
 struct LoginView: View {
     
     @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject private var sessionManager: SessionManager
     
     let onLoginSuccess: (UserSession) -> Void
     
@@ -308,7 +309,11 @@ extension LoginView {
 
                 DispatchQueue.main.async {
 
-                    showError(error.localizedDescription)
+                    if restoreSavedSessionForOfflineLogin(error: error) {
+                        return
+                    }
+
+                    showError(loginConnectionErrorMessage(for: error))
                 }
 
                 return
@@ -434,6 +439,29 @@ extension LoginView {
         showErrorAlert = true
     }
 
+    func restoreSavedSessionForOfflineLogin(error: Error) -> Bool {
+        guard isConnectionError(error) else {
+            return false
+        }
+
+        return sessionManager.restoreSavedSession(matchingEmail: attemptedEmail)
+    }
+
+    func loginConnectionErrorMessage(for error: Error) -> String {
+        if isConnectionError(error) {
+            return "Cannot sign in while the backend is unreachable. Sign in online once and do not manually sign out, start the backend, or use Preview mode for offline testing."
+        }
+
+        return error.localizedDescription
+    }
+
+    func isConnectionError(_ error: Error) -> Bool {
+        let nsError = error as NSError
+
+        return nsError.domain == NSURLErrorDomain
+        && [NSURLErrorNotConnectedToInternet, NSURLErrorCannotConnectToHost, NSURLErrorNetworkConnectionLost, NSURLErrorTimedOut].contains(nsError.code)
+    }
+
     func finishLoading() {
 
         isLoading = false
@@ -448,7 +476,14 @@ extension LoginView {
 
     func loginDemoUser() {
 
-        guard let url = URL(string: "\(Config.baseURL)/users/demo-login") else { return }
+        isLoading = true
+        errorMessage = nil
+
+        guard let url = URL(string: "\(Config.baseURL)/users/demo-login") else {
+            finishLoading()
+            useOfflineDemoSession()
+            return
+        }
 
         var request = URLRequest(url: url)
 
@@ -456,18 +491,57 @@ extension LoginView {
 
         URLSession.shared.dataTask(with: request) {
 
-            data, _, _ in
+            data, _, error in
 
-            guard let data else { return }
+            if let data {
+                DispatchQueue.main.async {
+                    finishLoading()
+                    handleSuccessfulLogin(
+                        data: data,
+                        provider: "demo"
+                    )
+                }
+                return
+            }
 
             DispatchQueue.main.async {
-
-                handleSuccessfulLogin(
-                    data: data,
-                    provider: "demo"
-                )
+                print("Preview login unavailable, using offline demo session:", error?.localizedDescription ?? "No response")
+                finishLoading()
+                useOfflineDemoSession()
             }
 
         }.resume()
+    }
+
+    func useOfflineDemoSession() {
+        let userId = "offline-demo-user"
+        let account = Account(
+            id: "offline-demo-account",
+            name: "Preview Account",
+            imageBase64: nil,
+            active: true
+        )
+        let location = Location(
+            id: "offline-demo-location",
+            name: "Preview Location",
+            active: true
+        )
+
+        OfflineAccountLocationStore.shared.cacheAccounts([account], userId: userId)
+        OfflineAccountLocationStore.shared.cacheLocations([location], accountId: account.id)
+
+        let session = UserSession(
+            jwt: "offline-demo-token",
+            userId: userId,
+            userName: "Preview User",
+            email: "preview@themanagerlife.local",
+            userImage: nil,
+            appRole: "MANAGER",
+            accessRole: "ADMIN",
+            authProvider: .demo
+        )
+
+        APIClient.shared.jwt = session.jwt
+        onLoginSuccess(session)
     }
 }

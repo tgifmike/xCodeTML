@@ -12,9 +12,11 @@ struct AccountPickerView: View {
 
     @EnvironmentObject var sessionManager: SessionManager
 
+    @StateObject private var offlineNavigationStore = OfflineAccountLocationStore.shared
     @State private var accounts: [Account] = []
     @State private var isLoading = false
     @State private var hasLoaded = false
+    @State private var isUsingOfflineAccounts = false
     @State private var errorMessage: String?
     
 
@@ -44,6 +46,10 @@ private extension AccountPickerView {
         VStack(alignment: .leading, spacing: 16) {
 
             header
+
+            if isUsingOfflineAccounts {
+                offlineAccountsBanner
+            }
 
             if isLoading {
                 ProgressView("Loading accounts...")
@@ -88,6 +94,35 @@ private extension AccountPickerView {
 
             Spacer()
         }
+    }
+
+    var offlineAccountsBanner: some View {
+        Label(
+            offlineAccountsText,
+            systemImage: "wifi.slash"
+        )
+        .font(.subheadline.weight(.medium))
+        .foregroundStyle(.orange)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(Color.orange.opacity(0.10))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    var offlineAccountsText: String {
+        guard let userId = sessionManager.session?.userId,
+              let cachedAt = offlineNavigationStore.cachedAccountsAt(for: userId) else {
+            return "Using saved accounts from this device"
+        }
+
+        return "Using saved accounts from \(formattedCacheDate(cachedAt))"
+    }
+
+    func formattedCacheDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
     }
 
     var profileImage: some View {
@@ -207,10 +242,21 @@ private extension AccountPickerView {
 
         do {
             accounts = try await AccountApi.shared.getAccountsForUser(userId: userId)
+            offlineNavigationStore.cacheAccounts(accounts, userId: userId)
+            isUsingOfflineAccounts = false
         } catch {
             print("❌ Accounts error:", error)
-            accounts = []
-            errorMessage = error.localizedDescription
+
+            let cachedAccounts = offlineNavigationStore.cachedAccounts(for: userId)
+            if cachedAccounts.isEmpty {
+                accounts = []
+                errorMessage = error.localizedDescription
+                isUsingOfflineAccounts = false
+            } else {
+                accounts = cachedAccounts
+                errorMessage = nil
+                isUsingOfflineAccounts = true
+            }
         }
 
         isLoading = false

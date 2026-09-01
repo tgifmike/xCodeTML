@@ -9,6 +9,13 @@
 /* Begin PBXBuildFile section */
 		3D15087E30361EF30021DBF2 /* String+URLPathSegment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D15087D30361EF30021DBF2 /* String+URLPathSegment.swift */; };
 		3D150880303646CB0021DBF2 /* LineCheckReconcileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D15087F303646CB0021DBF2 /* LineCheckReconcileView.swift */; };
+		3D2517C43045D33800E22EA5 /* PendingLineCheckSubmission.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2517C33045D33800E22EA5 /* PendingLineCheckSubmission.swift */; };
+		3D2517C63045D34900E22EA5 /* OfflineLineCheckStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2517C53045D34900E22EA5 /* OfflineLineCheckStore.swift */; };
+		3D2517C83045D79500E22EA5 /* OfflineLineCheckTemplateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2517C73045D79500E22EA5 /* OfflineLineCheckTemplateStore.swift */; };
+		3D2517CA3045DB2100E22EA5 /* PendingLineCheckPhoto.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2517C93045DB2100E22EA5 /* PendingLineCheckPhoto.swift */; };
+		3D2517CC3045DB4800E22EA5 /* OfflineLineCheckPhotoStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2517CB3045DB4800E22EA5 /* OfflineLineCheckPhotoStore.swift */; };
+		3D2517CE30460A9800E22EA5 /* OfflineSyncCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2517CD30460A9800E22EA5 /* OfflineSyncCoordinator.swift */; };
+		3D2517D0304614EF00E22EA5 /* OfflineAccountLocationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2517CF304614EF00E22EA5 /* OfflineAccountLocationStore.swift */; };
 		3D3AD24B2F4E2CE2005F14E5 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 3D3AD24A2F4E2CE2005F14E5 /* GoogleSignIn */; };
 		3D3AD24D2F4E2CE2005F14E5 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 3D3AD24C2F4E2CE2005F14E5 /* GoogleSignInSwift */; };
 		3D3F7B5E303E5D2C008D9EEF /* LineCheckCriterionResponseDto.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D3F7B5D303E5D2C008D9EEF /* LineCheckCriterionResponseDto.swift */; };
@@ -76,6 +83,13 @@
 /* Begin PBXFileReference section */
 		3D15087D30361EF30021DBF2 /* String+URLPathSegment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "String+URLPathSegment.swift"; sourceTree = "<group>"; };
 		3D15087F303646CB0021DBF2 /* LineCheckReconcileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineCheckReconcileView.swift; sourceTree = "<group>"; };
+		3D2517C33045D33800E22EA5 /* PendingLineCheckSubmission.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PendingLineCheckSubmission.swift; sourceTree = "<group>"; };
+		3D2517C53045D34900E22EA5 /* OfflineLineCheckStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineLineCheckStore.swift; sourceTree = "<group>"; };
+		3D2517C73045D79500E22EA5 /* OfflineLineCheckTemplateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineLineCheckTemplateStore.swift; sourceTree = "<group>"; };
+		3D2517C93045DB2100E22EA5 /* PendingLineCheckPhoto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PendingLineCheckPhoto.swift; sourceTree = "<group>"; };
+		3D2517CB3045DB4800E22EA5 /* OfflineLineCheckPhotoStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineLineCheckPhotoStore.swift; sourceTree = "<group>"; };
+		3D2517CD30460A9800E22EA5 /* OfflineSyncCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineSyncCoordinator.swift; sourceTree = "<group>"; };
+		3D2517CF304614EF00E22EA5 /* OfflineAccountLocationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineAccountLocationStore.swift; sourceTree = "<group>"; };
 		3D3AD2372F4E2B9C005F14E5 /* tml.2.0.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = tml.2.0.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3D3F7B5D303E5D2C008D9EEF /* LineCheckCriterionResponseDto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineCheckCriterionResponseDto.swift; sourceTree = "<group>"; };
 		3D3F7B5F303F1072008D9EEF /* LineCheckItemState+Completion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "LineCheckItemState+Completion.swift"; sourceTree = "<group>"; };
@@ -245,6 +259,13 @@
 				3D3F7B5D303E5D2C008D9EEF /* LineCheckCriterionResponseDto.swift */,
 				3D3F7B5F303F1072008D9EEF /* LineCheckItemState+Completion.swift */,
 				3D3F7B6130435736008D9EEF /* LineCheckCorrectionRules.swift */,
+				3D2517C33045D33800E22EA5 /* PendingLineCheckSubmission.swift */,
+				3D2517C53045D34900E22EA5 /* OfflineLineCheckStore.swift */,
+				3D2517C73045D79500E22EA5 /* OfflineLineCheckTemplateStore.swift */,
+				3D2517C93045DB2100E22EA5 /* PendingLineCheckPhoto.swift */,
+				3D2517CB3045DB4800E22EA5 /* OfflineLineCheckPhotoStore.swift */,
+				3D2517CD30460A9800E22EA5 /* OfflineSyncCoordinator.swift */,
+				3D2517CF304614EF00E22EA5 /* OfflineAccountLocationStore.swift */,
 			);
 			path = Model;
 			sourceTree = "<group>";
@@ -395,11 +416,14 @@
 				3D934E3C2FABD43200DC81AA /* LineCheckDetailVM.swift in Sources */,
 				3D54418A2FAB46AD00DC73D9 /* LineCheckStationDto.swift in Sources */,
 				3D54418B2FAB46AD00DC73D9 /* Endpoint.swift in Sources */,
+				3D2517CC3045DB4800E22EA5 /* OfflineLineCheckPhotoStore.swift in Sources */,
+				3D2517CA3045DB2100E22EA5 /* PendingLineCheckPhoto.swift in Sources */,
 				3D54418C2FAB46AD00DC73D9 /* AccountDetailView.swift in Sources */,
 				3D54418D2FAB46AD00DC73D9 /* LocationDetailView.swift in Sources */,
 				3D15087E30361EF30021DBF2 /* String+URLPathSegment.swift in Sources */,
 				3D934E3E2FB4A7BA00DC81AA /* SplashView.swift in Sources */,
 				3D54418E2FAB46AD00DC73D9 /* LineCheckDetailView.swift in Sources */,
+				3D2517C63045D34900E22EA5 /* OfflineLineCheckStore.swift in Sources */,
 				3D3F7B643044CA36008D9EEF /* LineCheckItemApi.swift in Sources */,
 				3D54418F2FAB46AD00DC73D9 /* Session.swift in Sources */,
 				3D5441902FAB46AD00DC73D9 /* LineCheckApi.swift in Sources */,
@@ -414,6 +438,7 @@
 				3D5441962FAB46AD00DC73D9 /* LineCheckStationInput.swift in Sources */,
 				3D150880303646CB0021DBF2 /* LineCheckReconcileView.swift in Sources */,
 				3D5441972FAB46AD00DC73D9 /* CreateLineCheckRequest.swift in Sources */,
+				3D2517C43045D33800E22EA5 /* PendingLineCheckSubmission.swift in Sources */,
 				3D5441982FAB46AD00DC73D9 /* StationChip.swift in Sources */,
 				3D3F7B6230435736008D9EEF /* LineCheckCorrectionRules.swift in Sources */,
 				3D934E402FB4ACD500DC81AA /* AutoLogoutInterval.swift in Sources */,
@@ -422,12 +447,15 @@
 				3D934E4C2FB4D25A00DC81AA /* UserProfileViewModel.swift in Sources */,
 				3D54419B2FAB46AD00DC73D9 /* LineCheckDto.swift in Sources */,
 				3D54419C2FAB46AD00DC73D9 /* LineCheckStationSection.swift in Sources */,
+				3D2517C83045D79500E22EA5 /* OfflineLineCheckTemplateStore.swift in Sources */,
 				3D934E3A2FABD14E00DC81AA /* LineCheckStationState.swift in Sources */,
 				3D54419D2FAB46AD00DC73D9 /* Location.swift in Sources */,
 				3D54419E2FAB46AD00DC73D9 /* AuthProvider.swift in Sources */,
+				3D2517CE30460A9800E22EA5 /* OfflineSyncCoordinator.swift in Sources */,
 				3D54419F2FAB46AD00DC73D9 /* LineCheckItemRow.swift in Sources */,
 				3D5441A02FAB46AD00DC73D9 /* LineCheckItemDto.swift in Sources */,
 				3D5441A12FAB46AD00DC73D9 /* LineCheckField.swift in Sources */,
+				3D2517D0304614EF00E22EA5 /* OfflineAccountLocationStore.swift in Sources */,
 				3D5441A22FAB46AD00DC73D9 /* APIClient.swift in Sources */,
 				3D5441A32FAB46AD00DC73D9 /* EmptyResponse.swift in Sources */,
 				3D5441A42FAB46AD00DC73D9 /* SessionManager.swift in Sources */,
@@ -592,7 +620,7 @@
 					"@executable_path/Frameworks",
 				);
 				"LD_RUNPATH_SEARCH_PATHS[arch=*]" = "@loader_path/Frameworks";
-				MARKETING_VERSION = 2.1.2;
+				MARKETING_VERSION = 2.1.3;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.themanagerlife.tml-2-0";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -629,7 +657,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.1.2;
+				MARKETING_VERSION = 2.1.3;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.themanagerlife.tml-2-0";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;

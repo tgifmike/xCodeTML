@@ -11,11 +11,13 @@ struct LocationStationsView: View {
     @EnvironmentObject var sessionManager: SessionManager
     @Environment(\.dismiss) private var dismiss
 
+    @StateObject private var templateStore = OfflineLineCheckTemplateStore.shared
     @State private var stations: [Station] = []
     @State private var selectedStations: Set<String> = []
 
     @State private var isLoading = true
     @State private var errorMessage: String?
+    @State private var isUsingOfflineStations = false
 
     @State private var creatingLineCheck = false
     @State private var createdLineCheckId: String?
@@ -165,6 +167,10 @@ private extension LocationStationsView {
 
             actionRow
 
+            if isUsingOfflineStations {
+                offlineBanner
+            }
+
             stationList
 
             footer
@@ -192,6 +198,34 @@ private extension LocationStationsView {
 
         }
         .padding(.horizontal, 4)
+    }
+
+    var offlineBanner: some View {
+        Label(
+            offlineCacheText,
+            systemImage: "wifi.slash"
+        )
+        .font(.subheadline.weight(.medium))
+        .foregroundStyle(.orange)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(Color.orange.opacity(0.10))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    var offlineCacheText: String {
+        guard let cachedAt = templateStore.cachedAt(for: locationId) else {
+            return "Using saved station data from this device"
+        }
+
+        return "Using saved station data from \(formattedCacheDate(cachedAt))"
+    }
+
+    func formattedCacheDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
     }
 }
 
@@ -324,7 +358,7 @@ private extension LocationStationsView {
                 if creatingLineCheck {
                     ProgressView()
                 } else {
-                    Text("Create Line Check")
+                    Text(isUsingOfflineStations ? "Create Offline Line Check" : "Create Line Check")
                         .frame(maxWidth: .infinity)
                         .font(.headline)
                 }
@@ -341,13 +375,22 @@ private extension LocationStationsView {
 
         isLoading = true
         errorMessage = nil
+        isUsingOfflineStations = false
 
         do {
             stations = try await StationApi.shared.getStationsByLocation(
                 locationId: locationId
             )
+            templateStore.cacheStations(stations, locationId: locationId)
         } catch {
-            errorMessage = error.localizedDescription
+            let cachedStations = templateStore.cachedStations(for: locationId)
+
+            if shouldUseOfflineData(for: error), !cachedStations.isEmpty {
+                stations = cachedStations
+                isUsingOfflineStations = true
+            } else {
+                errorMessage = error.localizedDescription
+            }
         }
 
         isLoading = false
@@ -367,19 +410,65 @@ private extension LocationStationsView {
         creatingLineCheck = true
         errorMessage = nil
 
+        let stationIds = Array(selectedStations)
+        let userId = sessionManager.session?.userId ?? ""
+
         do {
             let response = try await LineCheckApi.shared.createLineCheck(
-                userId: sessionManager.session?.userId ?? "",
-                stationIds: Array(selectedStations)
+                userId: userId,
+                stationIds: stationIds
             )
 
+            templateStore.cacheTemplate(
+                from: response,
+                selectedStationIds: stationIds,
+                availableStations: stations,
+                locationId: locationId
+            )
             selectedStations.removeAll()
             createdLineCheckId = response.id
 
         } catch {
-            errorMessage = error.localizedDescription
+            if shouldUseOfflineData(for: error),
+               let offlineLineCheck = templateStore.makeOfflineLineCheck(
+                   locationId: locationId,
+                   selectedStationIds: stationIds,
+                   userId: userId,
+                   username: sessionManager.session?.userName
+               ) {
+                OfflineLineCheckStore.shared.registerDraft(
+                    lineCheck: offlineLineCheck,
+                    locationId: locationId,
+                    locationName: locationName,
+                    accountName: account.name,
+                    userId: userId,
+                    stationIds: stationIds
+                )
+                selectedStations.removeAll()
+                createdLineCheckId = offlineLineCheck.id
+            } else if shouldUseOfflineData(for: error) {
+                errorMessage = "No saved template is available for the selected stations. Create this station set once while online, then it can be used offline."
+            } else {
+                errorMessage = error.localizedDescription
+            }
         }
 
         creatingLineCheck = false
+    }
+
+    func shouldUseOfflineData(for error: Error) -> Bool {
+        guard let urlError = error as? URLError else { return false }
+
+        switch urlError.code {
+        case .notConnectedToInternet,
+             .networkConnectionLost,
+             .cannotConnectToHost,
+             .cannotFindHost,
+             .dnsLookupFailed,
+             .timedOut:
+            return true
+        default:
+            return false
+        }
     }
 }

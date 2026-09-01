@@ -24,6 +24,7 @@ final class LineCheckDetailVM: ObservableObject {
     @Published var isSaving = false
     @Published var saveError: String?
     @Published var saveSuccess = false
+    @Published var saveSuccessMessage = "Line Check saved successfully."
    
 
     // MARK: Dirty check
@@ -264,7 +265,13 @@ final class LineCheckDetailVM: ObservableObject {
         error = nil
 
         do {
-            let response = try await LineCheckApi.shared.getLineCheckById(lineCheckId: lineCheckId)
+            let response: LineCheckDto
+
+            if let draft = OfflineLineCheckStore.shared.draft(lineCheckId: lineCheckId) {
+                response = draft.lineCheck
+            } else {
+                response = try await LineCheckApi.shared.getLineCheckById(lineCheckId: lineCheckId)
+            }
 
             let isOpenLineCheck = response.completedAt == nil
 
@@ -307,57 +314,93 @@ final class LineCheckDetailVM: ObservableObject {
 
     // MARK: SAVE
 
-    func save(current: LineCheckDto?) async {
-        guard var current else { return }
+    func save(
+        current: LineCheckDto?,
+        locationId: String,
+        locationName: String,
+        accountName: String
+    ) async {
+        guard let current else { return }
 
         isSaving = true
         saveError = nil
+        saveSuccessMessage = "Line Check saved successfully."
+
+        let payload = lineCheckPayload(from: current)
 
         do {
-            let grouped = Dictionary(grouping: items, by: { $0.stationId })
-
-            current.stations = grouped.map { (stationId, items) in
-                LineCheckStationDto(
-                    id: stationId.uuidString,
-                    stationName: items.first?.stationName ?? "",
-                    items: items.map { item in
-
-                        var dto = item.item
-                        dto.isMissing = item.isMissing
-
-                        if item.isMissing {
-                            dto.temperature = nil
-                            dto.itemChecked = nil
-
-                        } else {
-                            dto.temperature = item.item.tempTaken && !item.temperature.isEmpty
-                            ? Float(item.temperature)
-                            : nil
-                        }
-
-                        dto.observations = item.observations
-                        dto.criterionResponses = updatedCriterionResponses(
-                            dto.criterionResponses,
-                            from: item
-                        )
-                        dto.itemChecked = overallItemChecked(
-                            for: item,
-                            criterionResponses: dto.criterionResponses
-                        )
-
-                        return dto
-                    }
-                )
-            }
-
-            _ = try await LineCheckApi.shared.saveLineCheck(current)
-
+            _ = try await LineCheckApi.shared.saveLineCheck(payload)
             saveSuccess = true
-
         } catch {
-            saveError = error.localizedDescription
+            if shouldQueueOffline(error) {
+                OfflineLineCheckStore.shared.enqueue(
+                    lineCheck: payload,
+                    locationId: locationId,
+                    locationName: locationName,
+                    accountName: accountName
+                )
+                saveSuccessMessage = "Line check saved offline. It will sync from the dashboard when the connection is available."
+                saveSuccess = true
+            } else {
+                saveError = error.localizedDescription
+            }
         }
 
         isSaving = false
+    }
+
+    private func lineCheckPayload(from current: LineCheckDto) -> LineCheckDto {
+        var payload = current
+        let grouped = Dictionary(grouping: items, by: { $0.stationId })
+
+        payload.stations = grouped.map { (stationId, items) in
+            LineCheckStationDto(
+                id: stationId.uuidString,
+                stationName: items.first?.stationName ?? "",
+                items: items.map { item in
+                    var dto = item.item
+                    dto.isMissing = item.isMissing
+
+                    if item.isMissing {
+                        dto.temperature = nil
+                        dto.itemChecked = nil
+                    } else {
+                        dto.temperature = item.item.tempTaken && !item.temperature.isEmpty
+                        ? Float(item.temperature)
+                        : nil
+                    }
+
+                    dto.observations = item.observations
+                    dto.criterionResponses = updatedCriterionResponses(
+                        dto.criterionResponses,
+                        from: item
+                    )
+                    dto.itemChecked = overallItemChecked(
+                        for: item,
+                        criterionResponses: dto.criterionResponses
+                    )
+
+                    return dto
+                }
+            )
+        }
+
+        return payload
+    }
+
+    private func shouldQueueOffline(_ error: Error) -> Bool {
+        guard let urlError = error as? URLError else { return false }
+
+        switch urlError.code {
+        case .notConnectedToInternet,
+             .networkConnectionLost,
+             .cannotConnectToHost,
+             .cannotFindHost,
+             .dnsLookupFailed,
+             .timedOut:
+            return true
+        default:
+            return false
+        }
     }
 }

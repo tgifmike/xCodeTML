@@ -9,9 +9,14 @@ struct LocationDetailView: View {
 
     @EnvironmentObject var sessionManager: SessionManager
     @EnvironmentObject var appSettings: AppSettings
+    @EnvironmentObject var offlineSyncCoordinator: OfflineSyncCoordinator
 
+    @StateObject private var offlineStore = OfflineLineCheckStore.shared
+    @StateObject private var offlinePhotoStore = OfflineLineCheckPhotoStore.shared
     @State private var correctiveItemCount = 0
     @State private var locallyCorrectedItemIds: Set<String> = []
+    @State private var offlineSyncMessage = ""
+    @State private var isShowingOfflineSyncMessage = false
 
     var body: some View {
         content
@@ -33,6 +38,11 @@ struct LocationDetailView: View {
 
                     await loadCorrectiveLineCheckCount()
                 }
+            }
+            .alert("Offline Sync", isPresented: $isShowingOfflineSyncMessage) {
+                Button("OK") { }
+            } message: {
+                Text(offlineSyncMessage)
             }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -96,6 +106,25 @@ private extension LocationDetailView {
             }
             .buttonStyle(.plain)
 
+            if pendingOfflineSyncCount > 0 {
+                Button {
+                    Task {
+                        await syncOfflineLineChecks()
+                    }
+                } label: {
+                    DashboardActionCard(
+                        title: "Offline Work",
+                        subtitle: offlineSyncCoordinator.isSyncing
+                        ? "Syncing saved work..."
+                        : offlineSyncSubtitle,
+                        systemImage: "arrow.triangle.2.circlepath",
+                        badgeCount: pendingOfflineSyncCount
+                    )
+                }
+                .buttonStyle(.plain)
+                .disabled(offlineSyncCoordinator.isSyncing)
+            }
+
             NavigationLink {
                 LineCheckReconcileView(
                     locationId: locationId,
@@ -129,6 +158,44 @@ private extension LocationDetailView {
                 .buttonStyle(.plain)
             }
         }
+    }
+
+    var pendingOfflineLineCheckCount: Int {
+        offlineStore.pendingCount(for: locationId)
+    }
+
+    var pendingOfflinePhotoCount: Int {
+        offlinePhotoStore.pendingCount(forLocationId: locationId)
+    }
+
+    var pendingOfflineSyncCount: Int {
+        pendingOfflineLineCheckCount + pendingOfflinePhotoCount
+    }
+
+    var offlineSyncSubtitle: String {
+        var parts: [String] = []
+
+        if pendingOfflineLineCheckCount > 0 {
+            let label = pendingOfflineLineCheckCount == 1 ? "check" : "checks"
+            parts.append("\(pendingOfflineLineCheckCount) \(label)")
+        }
+
+        if pendingOfflinePhotoCount > 0 {
+            let label = pendingOfflinePhotoCount == 1 ? "photo" : "photos"
+            parts.append("\(pendingOfflinePhotoCount) \(label)")
+        }
+
+        return "\(parts.joined(separator: ", ")) waiting to sync"
+    }
+
+    func syncOfflineLineChecks() async {
+        await offlineSyncCoordinator.syncNow()
+        await loadCorrectiveLineCheckCount()
+
+        offlineSyncMessage = offlineSyncCoordinator.lastSyncSummary
+        ?? offlineSyncCoordinator.lastErrorMessage
+        ?? "No offline work is waiting to sync."
+        isShowingOfflineSyncMessage = true
     }
 
     func loadCorrectiveLineCheckCount() async {

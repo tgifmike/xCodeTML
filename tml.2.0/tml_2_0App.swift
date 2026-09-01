@@ -6,6 +6,7 @@ struct tml_2_0App: App {
 
     @StateObject private var sessionManager = SessionManager()
     @StateObject private var appSettings = AppSettings()
+    @StateObject private var offlineSyncCoordinator = OfflineSyncCoordinator.shared
     private let autoLogoutManager = AutoLogoutManager()
     @State private var showSplash = true
 
@@ -42,10 +43,14 @@ struct tml_2_0App: App {
 
                             sessionManager.session = newSession
 
+                            Task {
+                                await offlineSyncCoordinator.syncNow()
+                            }
+
                             autoLogoutManager.startTimer(
                                 interval: appSettings.autoLogoutInterval
                             ) {
-                                sessionManager.logout()
+                                sessionManager.logout(clearSavedSession: false)
                             }
                         })
                     }
@@ -75,6 +80,12 @@ struct tml_2_0App: App {
 
             .task {
 
+                offlineSyncCoordinator.startMonitoring()
+
+                if sessionManager.session != nil {
+                    await offlineSyncCoordinator.syncIfPossible(reason: "app-start")
+                }
+
                 try? await Task.sleep(
                     for: .seconds(2)
                 )
@@ -90,10 +101,14 @@ struct tml_2_0App: App {
 
                 if loggedIn {
 
+                    Task {
+                        await offlineSyncCoordinator.syncNow()
+                    }
+
                     autoLogoutManager.startTimer(
                         interval: appSettings.autoLogoutInterval
                     ) {
-                        sessionManager.logout()
+                        sessionManager.logout(clearSavedSession: false)
                     }
 
                 } else {
@@ -107,11 +122,12 @@ struct tml_2_0App: App {
                 guard sessionManager.session != nil else { return }
 
                 autoLogoutManager.startTimer(interval: newValue) {
-                    sessionManager.logout()
+                    sessionManager.logout(clearSavedSession: false)
                 }
             }
         }
         .environmentObject(sessionManager)
         .environmentObject(appSettings)
+        .environmentObject(offlineSyncCoordinator)
     }
 }

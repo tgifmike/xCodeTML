@@ -72,6 +72,7 @@ struct LineCheckReconcileView: View {
                 NavigationLink {
                     LineCheckReconcileDetailView(
                         lineCheck: summary.lineCheck,
+                        locationId: locationId,
                         locationName: locationName
                     )
                 } label: {
@@ -201,8 +202,10 @@ struct LineCheckReconcileView: View {
 private struct LineCheckReconcileDetailView: View {
 
     @State private var lineCheck: LineCheckDto
+    let locationId: String
     let locationName: String
 
+    @StateObject private var photoStore = OfflineLineCheckPhotoStore.shared
     @State private var activeIssueId: ReconcileIssue.ID?
     @State private var cameraIssue: ReconcileIssue?
     @State private var photosByItemId: [String: [LineCheckPhotoDto]] = [:]
@@ -210,8 +213,9 @@ private struct LineCheckReconcileDetailView: View {
     @State private var errorMessage: String?
     @State private var saveStatusMessage: String?
 
-    init(lineCheck: LineCheckDto, locationName: String) {
+    init(lineCheck: LineCheckDto, locationId: String, locationName: String) {
         _lineCheck = State(initialValue: lineCheck)
+        self.locationId = locationId
         self.locationName = locationName
     }
 
@@ -347,8 +351,14 @@ private struct LineCheckReconcileDetailView: View {
     }
 
     private func photos(for issue: ReconcileIssue) -> [LineCheckPhotoDto] {
-        guard let itemId = issue.item.id else { return [] }
-        return photosByItemId[itemId] ?? []
+        let pendingPhotos = photoStore.pendingDtos(
+            lineCheckId: issue.lineCheckId,
+            itemId: issue.item.id,
+            itemName: issue.item.itemName ?? ""
+        )
+
+        guard let itemId = issue.item.id else { return pendingPhotos }
+        return (photosByItemId[itemId] ?? []) + pendingPhotos
     }
 
     private func isLoadingPhotos(for issue: ReconcileIssue) -> Bool {
@@ -420,7 +430,9 @@ private struct LineCheckReconcileDetailView: View {
                 lineCheckItemId: itemId
             )
         } catch {
-            errorMessage = error.localizedDescription
+            if !shouldQueueOffline(error) {
+                errorMessage = error.localizedDescription
+            }
         }
 
         loadingPhotoItemIds.remove(itemId)
@@ -467,14 +479,15 @@ private struct LineCheckReconcileDetailView: View {
         activeIssueId = issueId
         errorMessage = nil
 
-        do {
-            let notes = correctiveNotes(for: issue)
-                .trimmingCharacters(in: .whitespacesAndNewlines)
+        let notes = correctiveNotes(for: issue)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let fileName = "corrective-\(itemId)-\(UUID().uuidString).jpg"
 
+        do {
             _ = try await LineCheckPhotoApi.shared.uploadPhoto(
                 lineCheckItemId: itemId,
                 imageData: imageData,
-                fileName: "corrective-\(itemId)-\(UUID().uuidString).jpg",
+                fileName: fileName,
                 photoType: .corrective,
                 notes: notes.isEmpty ? "Corrective follow-up" : notes
             )
@@ -482,7 +495,29 @@ private struct LineCheckReconcileDetailView: View {
             photosByItemId[itemId] = nil
             await loadPhotos(for: itemId)
         } catch {
-            errorMessage = error.localizedDescription
+            if shouldQueueOffline(error) {
+                do {
+                    let pending = try photoStore.enqueue(
+                        lineCheckId: issue.lineCheckId,
+                        locationId: locationId,
+                        lineCheckItemId: itemId,
+                        stationName: issue.stationName,
+                        itemName: issue.item.itemName ?? "",
+                        criterionResponseId: nil,
+                        criterionLabel: nil,
+                        imageData: imageData,
+                        fileName: fileName,
+                        photoType: .corrective,
+                        notes: notes.isEmpty ? "Corrective follow-up" : notes
+                    )
+                    photosByItemId[itemId, default: []].append(pending)
+                    saveStatusMessage = "Photo saved offline. It will upload during sync."
+                } catch {
+                    errorMessage = error.localizedDescription
+                }
+            } else {
+                errorMessage = error.localizedDescription
+            }
         }
 
         activeIssueId = nil
@@ -544,6 +579,22 @@ private struct LineCheckReconcileDetailView: View {
             stationName: station.stationName,
             items: items
         )
+    }
+
+    private func shouldQueueOffline(_ error: Error) -> Bool {
+        guard let urlError = error as? URLError else { return false }
+
+        switch urlError.code {
+        case .notConnectedToInternet,
+             .networkConnectionLost,
+             .cannotConnectToHost,
+             .cannotFindHost,
+             .dnsLookupFailed,
+             .timedOut:
+            return true
+        default:
+            return false
+        }
     }
 
     private func jpegData(from image: UIImage) -> Data? {
@@ -872,11 +923,12 @@ private struct ReconcileIssueCard: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 photoThumbnail(photo)
 
-                                Text(photo.photoType.label)
+                                Text(photoLabel(for: photo))
                                     .font(.caption2.weight(.semibold))
-                                    .foregroundStyle(photo.photoType == .corrective ? .green : .secondary)
+                                    .foregroundStyle(photoLabelColor(for: photo))
                                     .lineLimit(1)
                             }
+                            .frame(width: 112, alignment: .leading)
                         }
                     }
                     .padding(.vertical, 2)
@@ -924,6 +976,22 @@ private struct ReconcileIssueCard: View {
         Image(systemName: "photo")
             .font(.title3)
             .foregroundStyle(.secondary)
+    }
+
+    private func photoLabel(for photo: LineCheckPhotoDto) -> String {
+        isPendingPhoto(photo) ? "Waiting to upload" : photo.photoType.label
+    }
+
+    private func photoLabelColor(for photo: LineCheckPhotoDto) -> Color {
+        if isPendingPhoto(photo) {
+            return .orange
+        }
+
+        return photo.photoType == .corrective ? .green : .secondary
+    }
+
+    private func isPendingPhoto(_ photo: LineCheckPhotoDto) -> Bool {
+        photo.id.hasPrefix("pending-photo-")
     }
 }
 

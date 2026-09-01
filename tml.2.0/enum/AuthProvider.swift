@@ -5,7 +5,7 @@
 //  Created by mike on 4/21/26.
 //
 
-enum AuthProvider: String {
+enum AuthProvider: String, Codable {
 
     case google
     case apple
