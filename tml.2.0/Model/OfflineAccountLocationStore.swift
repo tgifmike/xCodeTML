@@ -26,6 +26,12 @@ final class OfflineAccountLocationStore: ObservableObject {
         accountCache(for: userId)?.updatedAt
     }
 
+    func cachedAccount(id: String) -> Account? {
+        accountCaches
+            .flatMap(\.accounts)
+            .first { $0.id == id }
+    }
+
     func cacheAccounts(_ accounts: [Account], userId: String) {
         let cache = OfflineAccountCache(
             userId: userId,
@@ -48,6 +54,10 @@ final class OfflineAccountLocationStore: ObservableObject {
 
     func cachedLocationsAt(for accountId: String) -> Date? {
         locationCache(for: accountId)?.updatedAt
+    }
+
+    func cachedLocation(id: String, accountId: String) -> Location? {
+        locationCache(for: accountId)?.locations.first { $0.id == id }
     }
 
     func cacheLocations(_ locations: [Location], accountId: String) {

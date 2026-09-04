@@ -13,6 +13,7 @@ final class OfflineSyncCoordinator: ObservableObject {
     @Published private(set) var lastErrorMessage: String?
     @Published private(set) var lastSyncSummary: String?
 
+    private var canSyncLineCheckWork = true
     private let monitor = NWPathMonitor()
     private let monitorQueue = DispatchQueue(label: "tml.offline-sync-monitor")
     private var hasStartedMonitoring = false
@@ -39,8 +40,12 @@ final class OfflineSyncCoordinator: ObservableObject {
         OfflineLineCheckPhotoStore.shared.pendingCount
     }
 
+    var pendingPinEventCount: Int {
+        OfflinePinDeviceStore.shared.pendingEvents.count
+    }
+
     var pendingCount: Int {
-        pendingLineCheckCount + pendingPhotoCount
+        pendingLineCheckCount + pendingPhotoCount + pendingPinEventCount
     }
 
     private func observeOfflineStores() {
@@ -75,6 +80,10 @@ final class OfflineSyncCoordinator: ObservableObject {
         }
 
         return "Offline. \(pendingCount) item(s) saved on this device."
+    }
+
+    func setLineCheckSyncEnabled(_ enabled: Bool) {
+        canSyncLineCheckWork = enabled
     }
 
     func startMonitoring() {
@@ -135,27 +144,37 @@ final class OfflineSyncCoordinator: ObservableObject {
         isSyncing = true
         lastErrorMessage = nil
 
-        let lineCheckResult = await OfflineLineCheckStore.shared.syncPending()
-        let photoResult = await OfflineLineCheckPhotoStore.shared.syncPending()
+        let lineCheckResult = canSyncLineCheckWork
+        ? await OfflineLineCheckStore.shared.syncPending()
+        : OfflineLineCheckSyncResult(synced: 0, failed: 0, lastErrorMessage: nil)
+        let photoResult = canSyncLineCheckWork
+        ? await OfflineLineCheckPhotoStore.shared.syncPending()
+        : OfflineLineCheckPhotoSyncResult(synced: 0, failed: 0, lastErrorMessage: nil)
+        let pinEventResult = await OfflinePinDeviceStore.shared.syncPendingEvents()
 
-        let syncedCount = lineCheckResult.synced + photoResult.synced
-        let failedCount = lineCheckResult.failed + photoResult.failed
+        let syncedCount = lineCheckResult.synced + photoResult.synced + pinEventResult.accepted
+        let failedCount = lineCheckResult.failed + photoResult.failed + pinEventResult.failed
+        let skippedCount = canSyncLineCheckWork ? 0 : pendingLineCheckCount + pendingPhotoCount
 
-        if failedCount == 0 {
+        if failedCount == 0 && syncedCount == 0 && skippedCount > 0 {
+            lastSyncSummary = nil
+            lastErrorMessage = "Offline line checks will sync after manager sign-in."
+        } else if failedCount == 0 {
             lastSyncSummary = "Synced \(syncedCount) offline item(s)."
             lastErrorMessage = nil
         } else if syncedCount > 0 {
             lastSyncSummary = "Synced \(syncedCount) offline item(s). \(failedCount) still waiting."
-            lastErrorMessage = lineCheckResult.lastErrorMessage ?? photoResult.lastErrorMessage
+            lastErrorMessage = lineCheckResult.lastErrorMessage ?? photoResult.lastErrorMessage ?? pinEventResult.lastErrorMessage
         } else {
             lastSyncSummary = nil
             lastErrorMessage = lineCheckResult.lastErrorMessage
             ?? photoResult.lastErrorMessage
+            ?? pinEventResult.lastErrorMessage
             ?? "Could not sync offline work."
         }
 
         #if DEBUG
-        print("Offline sync result synced=\(syncedCount) failed=\(failedCount) pending=\(pendingCount) error=\(lastErrorMessage ?? "none")")
+        print("Offline sync result synced=\(syncedCount) failed=\(failedCount) skipped=\(skippedCount) pending=\(pendingCount) error=\(lastErrorMessage ?? "none")")
         #endif
 
         lastSyncAt = Date()

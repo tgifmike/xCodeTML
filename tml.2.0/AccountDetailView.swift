@@ -4,6 +4,7 @@ import GoogleSignIn
 struct AccountDetailView: View {
 
     @EnvironmentObject var sessionManager: SessionManager
+    @EnvironmentObject var offlineSyncCoordinator: OfflineSyncCoordinator
 
 //    let accountId: String
 //    let accountName: String
@@ -21,7 +22,7 @@ struct AccountDetailView: View {
         content
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .topBarTrailing) { ProfileMenuView() .environmentObject(sessionManager) } }
+            .toolbar { ToolbarItem(placement: .topBarTrailing) { ProfileMenuView(pinEnrollmentAccount: account) .environmentObject(sessionManager) } }
             .task {
                 await loadLocations()
             }
@@ -36,7 +37,7 @@ private extension AccountDetailView {
 
             header
 
-            if isUsingOfflineLocations {
+            if shouldShowOfflineLocationsBanner {
                 offlineLocationsBanner
             }
 
@@ -90,22 +91,34 @@ private extension AccountDetailView {
     var offlineLocationsBanner: some View {
         Label(
             offlineLocationsText,
-            systemImage: "wifi.slash"
+            systemImage: locationBannerSystemImage
         )
         .font(.subheadline.weight(.medium))
-        .foregroundStyle(.orange)
+        .foregroundStyle(locationBannerColor)
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
-        .background(Color.orange.opacity(0.10))
+        .background(locationBannerColor.opacity(0.10))
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    var shouldShowOfflineLocationsBanner: Bool {
+        isUsingOfflineLocations && !offlineSyncCoordinator.isOnline
+    }
+
+    var locationBannerSystemImage: String {
+        "wifi.slash"
+    }
+
+    var locationBannerColor: Color {
+        .orange
     }
 
     var offlineLocationsText: String {
         guard let cachedAt = offlineNavigationStore.cachedLocationsAt(for: account.id) else {
-            return "Using saved locations from this device"
+            return "Offline. Using saved locations from this device"
         }
 
-        return "Using saved locations from \(formattedCacheDate(cachedAt))"
+        return "Offline. Using saved locations from \(formattedCacheDate(cachedAt))"
     }
 
     func formattedCacheDate(_ date: Date) -> String {
@@ -202,23 +215,47 @@ private extension AccountDetailView {
         }
 
         do {
-            locations = try await LocationApi.shared.getLocationsForAccount(
-                accountId: account.id
-            )
+            let fetchedLocations: [Location]
+            if let session = sessionManager.session, session.authProvider == .pin {
+                fetchedLocations = try await LocationApi.shared.getLocationsForUser(
+                    userId: session.userId
+                )
+            } else {
+                fetchedLocations = try await LocationApi.shared.getLocationsForAccount(
+                    accountId: account.id
+                )
+            }
+
+            locations = locationsForSelectedAccount(fetchedLocations)
             offlineNavigationStore.cacheLocations(locations, accountId: account.id)
             isUsingOfflineLocations = false
         } catch {
-            print("❌ Failed to load locations:", error)
-
             let cachedLocations = offlineNavigationStore.cachedLocations(for: account.id)
             if cachedLocations.isEmpty {
                 locations = []
                 isUsingOfflineLocations = false
+
+                if isUnauthorized(error) {
+                    sessionManager.logout(clearSavedSession: true)
+                }
             } else {
                 locations = cachedLocations
                 isUsingOfflineLocations = true
             }
         }
+    }
+
+    func isUnauthorized(_ error: Error) -> Bool {
+        if case APIError.unauthorized = error {
+            return true
+        }
+
+        return false
+    }
+
+    func locationsForSelectedAccount(_ fetchedLocations: [Location]) -> [Location] {
+        let accountScopedLocations = fetchedLocations.filter { $0.accountId == account.id }
+        return accountScopedLocations.isEmpty ? fetchedLocations : accountScopedLocations
     }
 }
 

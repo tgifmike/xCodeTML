@@ -7,6 +7,7 @@ struct LineCheckDetailView: View {
     let locationName: String
     let accountName: String
     let isReadOnly: Bool
+    let initialLineCheck: LineCheckDto?
     let onComplete: (() -> Void)?
 
     init(
@@ -15,6 +16,7 @@ struct LineCheckDetailView: View {
         locationName: String,
         accountName: String,
         isReadOnly: Bool = false,
+        initialLineCheck: LineCheckDto? = nil,
         onComplete: (() -> Void)? = nil
     ) {
         self.lineCheckId = lineCheckId
@@ -22,6 +24,7 @@ struct LineCheckDetailView: View {
         self.locationName = locationName
         self.accountName = accountName
         self.isReadOnly = isReadOnly
+        self.initialLineCheck = initialLineCheck
         self.onComplete = onComplete
     }
 
@@ -43,7 +46,7 @@ struct LineCheckDetailView: View {
                 .navigationBarTitleDisplayMode(.inline)
         }
         .task {
-            await vm.load(lineCheckId: lineCheckId)
+            await vm.load(lineCheckId: lineCheckId, initialLineCheck: initialLineCheck)
         }
         .overlay {
 

@@ -16,6 +16,13 @@
 		3D2517CC3045DB4800E22EA5 /* OfflineLineCheckPhotoStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2517CB3045DB4800E22EA5 /* OfflineLineCheckPhotoStore.swift */; };
 		3D2517CE30460A9800E22EA5 /* OfflineSyncCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2517CD30460A9800E22EA5 /* OfflineSyncCoordinator.swift */; };
 		3D2517D0304614EF00E22EA5 /* OfflineAccountLocationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2517CF304614EF00E22EA5 /* OfflineAccountLocationStore.swift */; };
+		3D2517D33048501600E22EA5 /* IpadDeviceApi.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2517D23048501600E22EA5 /* IpadDeviceApi.swift */; };
+		3D2517D53048506600E22EA5 /* OfflinePinDeviceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2517D43048506600E22EA5 /* OfflinePinDeviceStore.swift */; };
+		3D2517D73048507000E22EA5 /* OfflinePinVerifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2517D63048507000E22EA5 /* OfflinePinVerifier.swift */; };
+		3D2517D93048508C00E22EA5 /* OfflinePinLoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2517D83048508C00E22EA5 /* OfflinePinLoginView.swift */; };
+		3D2517DD3049D12200E22EA5 /* OfflineSyncView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2517DC3049D12200E22EA5 /* OfflineSyncView.swift */; };
+		3D2517DF304AFC9700E22EA5 /* EnrolledDeviceDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2517DE304AFC9700E22EA5 /* EnrolledDeviceDashboardView.swift */; };
+		3D2517E4304B00C000E22EA5 /* Argon2Swift in Frameworks */ = {isa = PBXBuildFile; productRef = 3D2517E3304B00C000E22EA5 /* Argon2Swift */; };
 		3D3AD24B2F4E2CE2005F14E5 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 3D3AD24A2F4E2CE2005F14E5 /* GoogleSignIn */; };
 		3D3AD24D2F4E2CE2005F14E5 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 3D3AD24C2F4E2CE2005F14E5 /* GoogleSignInSwift */; };
 		3D3F7B5E303E5D2C008D9EEF /* LineCheckCriterionResponseDto.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D3F7B5D303E5D2C008D9EEF /* LineCheckCriterionResponseDto.swift */; };
@@ -90,6 +97,12 @@
 		3D2517CB3045DB4800E22EA5 /* OfflineLineCheckPhotoStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineLineCheckPhotoStore.swift; sourceTree = "<group>"; };
 		3D2517CD30460A9800E22EA5 /* OfflineSyncCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineSyncCoordinator.swift; sourceTree = "<group>"; };
 		3D2517CF304614EF00E22EA5 /* OfflineAccountLocationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineAccountLocationStore.swift; sourceTree = "<group>"; };
+		3D2517D23048501600E22EA5 /* IpadDeviceApi.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IpadDeviceApi.swift; sourceTree = "<group>"; };
+		3D2517D43048506600E22EA5 /* OfflinePinDeviceStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflinePinDeviceStore.swift; sourceTree = "<group>"; };
+		3D2517D63048507000E22EA5 /* OfflinePinVerifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflinePinVerifier.swift; sourceTree = "<group>"; };
+		3D2517D83048508C00E22EA5 /* OfflinePinLoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflinePinLoginView.swift; sourceTree = "<group>"; };
+		3D2517DC3049D12200E22EA5 /* OfflineSyncView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineSyncView.swift; sourceTree = "<group>"; };
+		3D2517DE304AFC9700E22EA5 /* EnrolledDeviceDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnrolledDeviceDashboardView.swift; sourceTree = "<group>"; };
 		3D3AD2372F4E2B9C005F14E5 /* tml.2.0.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = tml.2.0.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3D3F7B5D303E5D2C008D9EEF /* LineCheckCriterionResponseDto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineCheckCriterionResponseDto.swift; sourceTree = "<group>"; };
 		3D3F7B5F303F1072008D9EEF /* LineCheckItemState+Completion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "LineCheckItemState+Completion.swift"; sourceTree = "<group>"; };
@@ -169,16 +182,25 @@
 			files = (
 				3D3AD24B2F4E2CE2005F14E5 /* GoogleSignIn in Frameworks */,
 				3D3AD24D2F4E2CE2005F14E5 /* GoogleSignInSwift in Frameworks */,
+				3D2517E4304B00C000E22EA5 /* Argon2Swift in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		3D2517E0304AFEF100E22EA5 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		3D3AD22E2F4E2B9C005F14E5 = {
 			isa = PBXGroup;
 			children = (
 				3D54417D2FAB46AD00DC73D9 /* tml.2.0 */,
+				3D2517E0304AFEF100E22EA5 /* Frameworks */,
 				3D3AD2382F4E2B9C005F14E5 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -206,6 +228,7 @@
 				3D61F0173036187300E05ED5 /* LineCheckPhotoApi.swift */,
 				3D15087D30361EF30021DBF2 /* String+URLPathSegment.swift */,
 				3D3F7B633044CA36008D9EEF /* LineCheckItemApi.swift */,
+				3D2517D23048501600E22EA5 /* IpadDeviceApi.swift */,
 			);
 			path = API;
 			sourceTree = "<group>";
@@ -266,6 +289,8 @@
 				3D2517CB3045DB4800E22EA5 /* OfflineLineCheckPhotoStore.swift */,
 				3D2517CD30460A9800E22EA5 /* OfflineSyncCoordinator.swift */,
 				3D2517CF304614EF00E22EA5 /* OfflineAccountLocationStore.swift */,
+				3D2517D43048506600E22EA5 /* OfflinePinDeviceStore.swift */,
+				3D2517D63048507000E22EA5 /* OfflinePinVerifier.swift */,
 			);
 			path = Model;
 			sourceTree = "<group>";
@@ -313,6 +338,9 @@
 				3D934E3D2FB4A7AD00DC81AA /* SplashView.swift */,
 				F78E44C330328A2400BF7CD1 /* LineCheckHistoryView.swift */,
 				3D15087F303646CB0021DBF2 /* LineCheckReconcileView.swift */,
+				3D2517D83048508C00E22EA5 /* OfflinePinLoginView.swift */,
+				3D2517DC3049D12200E22EA5 /* OfflineSyncView.swift */,
+				3D2517DE304AFC9700E22EA5 /* EnrolledDeviceDashboardView.swift */,
 			);
 			path = tml.2.0;
 			sourceTree = "<group>";
@@ -339,6 +367,7 @@
 			packageProductDependencies = (
 				3D3AD24A2F4E2CE2005F14E5 /* GoogleSignIn */,
 				3D3AD24C2F4E2CE2005F14E5 /* GoogleSignInSwift */,
+				3D2517E3304B00C000E22EA5 /* Argon2Swift */,
 			);
 			productName = tml.2.0;
 			productReference = 3D3AD2372F4E2B9C005F14E5 /* tml.2.0.app */;
@@ -370,6 +399,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				3D3AD2492F4E2CE2005F14E5 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+				3D2517E2304B00C000E22EA5 /* XCRemoteSwiftPackageReference "Argon2Swift" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 3D3AD2382F4E2B9C005F14E5 /* Products */;
@@ -400,6 +430,7 @@
 			files = (
 				3D5441802FAB46AD00DC73D9 /* StationApi.swift in Sources */,
 				3D5441812FAB46AD00DC73D9 /* UserApi.swift in Sources */,
+				3D2517D93048508C00E22EA5 /* OfflinePinLoginView.swift in Sources */,
 				3D61F0163036186B00E05ED5 /* LineCheckPhotoDto.swift in Sources */,
 				3D5441822FAB46AD00DC73D9 /* UserProfileView.swift in Sources */,
 				3D5441832FAB46AD00DC73D9 /* tml_2_0App.swift in Sources */,
@@ -407,6 +438,7 @@
 				3D5441852FAB46AD00DC73D9 /* CheckBoxRow.swift in Sources */,
 				3D61F01A303618BA00E05ED5 /* ImagePicker.swift in Sources */,
 				3D5441862FAB46AD00DC73D9 /* AccountApi.swift in Sources */,
+				3D2517D53048506600E22EA5 /* OfflinePinDeviceStore.swift in Sources */,
 				3D5441872FAB46AD00DC73D9 /* Config.swift in Sources */,
 				3D934E382FABD12500DC81AA /* LineCheckItemState.swift in Sources */,
 				3D3F7B60303F1072008D9EEF /* LineCheckItemState+Completion.swift in Sources */,
@@ -421,15 +453,18 @@
 				3D54418C2FAB46AD00DC73D9 /* AccountDetailView.swift in Sources */,
 				3D54418D2FAB46AD00DC73D9 /* LocationDetailView.swift in Sources */,
 				3D15087E30361EF30021DBF2 /* String+URLPathSegment.swift in Sources */,
+				3D2517DF304AFC9700E22EA5 /* EnrolledDeviceDashboardView.swift in Sources */,
 				3D934E3E2FB4A7BA00DC81AA /* SplashView.swift in Sources */,
 				3D54418E2FAB46AD00DC73D9 /* LineCheckDetailView.swift in Sources */,
 				3D2517C63045D34900E22EA5 /* OfflineLineCheckStore.swift in Sources */,
 				3D3F7B643044CA36008D9EEF /* LineCheckItemApi.swift in Sources */,
 				3D54418F2FAB46AD00DC73D9 /* Session.swift in Sources */,
+				3D2517D33048501600E22EA5 /* IpadDeviceApi.swift in Sources */,
 				3D5441902FAB46AD00DC73D9 /* LineCheckApi.swift in Sources */,
 				3D5441912FAB46AD00DC73D9 /* AppSettings.swift in Sources */,
 				3D5441922FAB46AD00DC73D9 /* LineCheckItemInput.swift in Sources */,
 				3D5441932FAB46AD00DC73D9 /* SettingsView.swift in Sources */,
+				3D2517D73048507000E22EA5 /* OfflinePinVerifier.swift in Sources */,
 				F78E44C430328A2400BF7CD1 /* LineCheckHistoryView.swift in Sources */,
 				3D5441942FAB46AD00DC73D9 /* AnyEncodable.swift in Sources */,
 				3D5441952FAB46AD00DC73D9 /* Station.swift in Sources */,
@@ -449,6 +484,7 @@
 				3D54419C2FAB46AD00DC73D9 /* LineCheckStationSection.swift in Sources */,
 				3D2517C83045D79500E22EA5 /* OfflineLineCheckTemplateStore.swift in Sources */,
 				3D934E3A2FABD14E00DC81AA /* LineCheckStationState.swift in Sources */,
+				3D2517DD3049D12200E22EA5 /* OfflineSyncView.swift in Sources */,
 				3D54419D2FAB46AD00DC73D9 /* Location.swift in Sources */,
 				3D54419E2FAB46AD00DC73D9 /* AuthProvider.swift in Sources */,
 				3D2517CE30460A9800E22EA5 /* OfflineSyncCoordinator.swift in Sources */,
@@ -695,6 +731,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		3D2517E2304B00C000E22EA5 /* XCRemoteSwiftPackageReference "Argon2Swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/tmthecoder/Argon2Swift.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
 		3D3AD2492F4E2CE2005F14E5 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
@@ -706,6 +750,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		3D2517E3304B00C000E22EA5 /* Argon2Swift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3D2517E2304B00C000E22EA5 /* XCRemoteSwiftPackageReference "Argon2Swift" */;
+			productName = Argon2Swift;
+		};
 		3D3AD24A2F4E2CE2005F14E5 /* GoogleSignIn */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 3D3AD2492F4E2CE2005F14E5 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;

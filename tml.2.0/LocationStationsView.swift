@@ -9,9 +9,11 @@ struct LocationStationsView: View {
     let account: Account
 
     @EnvironmentObject var sessionManager: SessionManager
+    @EnvironmentObject var offlineSyncCoordinator: OfflineSyncCoordinator
     @Environment(\.dismiss) private var dismiss
 
     @StateObject private var templateStore = OfflineLineCheckTemplateStore.shared
+    @StateObject private var pinStore = OfflinePinDeviceStore.shared
     @State private var stations: [Station] = []
     @State private var selectedStations: Set<String> = []
 
@@ -20,31 +22,34 @@ struct LocationStationsView: View {
     @State private var isUsingOfflineStations = false
 
     @State private var creatingLineCheck = false
-    @State private var createdLineCheckId: String?
+    @State private var createdLineCheck: LineCheckDto?
 
     var body: some View {
         content
             .navigationTitle("Select Stations")
             .navigationBarTitleDisplayMode(.inline)
-            .navigationDestination(item: $createdLineCheckId) { id in
-                LineCheckDetailView(
-                    lineCheckId: id,
-                    locationId: locationId,
-                    locationName: locationName,
-                    accountName: account.name,
-                    onComplete: {
-                        createdLineCheckId = nil
+            .navigationDestination(isPresented: createdLineCheckBinding) {
+                if let lineCheck = createdLineCheck {
+                    LineCheckDetailView(
+                        lineCheckId: lineCheck.id,
+                        locationId: locationId,
+                        locationName: locationName,
+                        accountName: account.name,
+                        initialLineCheck: lineCheck,
+                        onComplete: {
+                            createdLineCheck = nil
 
-                        Task { @MainActor in
-                            try? await Task.sleep(nanoseconds: 150_000_000)
-                            dismiss()
+                            Task { @MainActor in
+                                try? await Task.sleep(nanoseconds: 150_000_000)
+                                dismiss()
+                            }
                         }
-                    }
-                )
+                    )
+                }
             }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    ProfileMenuView()
+                    ProfileMenuView(pinEnrollmentAccount: account)
                         .environmentObject(sessionManager)
                 }
             }
@@ -55,6 +60,17 @@ struct LocationStationsView: View {
 }
 
 private extension LocationStationsView {
+
+    var createdLineCheckBinding: Binding<Bool> {
+        Binding(
+            get: { createdLineCheck != nil },
+            set: { isPresented in
+                if !isPresented {
+                    createdLineCheck = nil
+                }
+            }
+        )
+    }
 
     var content: some View {
 
@@ -167,7 +183,7 @@ private extension LocationStationsView {
 
             actionRow
 
-            if isUsingOfflineStations {
+            if shouldShowOfflineStationsBanner {
                 offlineBanner
             }
 
@@ -200,6 +216,10 @@ private extension LocationStationsView {
         .padding(.horizontal, 4)
     }
 
+    var shouldShowOfflineStationsBanner: Bool {
+        isUsingOfflineStations && !offlineSyncCoordinator.isOnline
+    }
+
     var offlineBanner: some View {
         Label(
             offlineCacheText,
@@ -215,10 +235,10 @@ private extension LocationStationsView {
 
     var offlineCacheText: String {
         guard let cachedAt = templateStore.cachedAt(for: locationId) else {
-            return "Using saved station data from this device"
+            return "Offline. Using saved station data from this device"
         }
 
-        return "Using saved station data from \(formattedCacheDate(cachedAt))"
+        return "Offline. Using saved station data from \(formattedCacheDate(cachedAt))"
     }
 
     func formattedCacheDate(_ date: Date) -> String {
@@ -376,6 +396,7 @@ private extension LocationStationsView {
         isLoading = true
         errorMessage = nil
         isUsingOfflineStations = false
+        defer { isLoading = false }
 
         do {
             stations = try await StationApi.shared.getStationsByLocation(
@@ -392,8 +413,10 @@ private extension LocationStationsView {
                 errorMessage = error.localizedDescription
             }
         }
+    }
 
-        isLoading = false
+    var isPinSession: Bool {
+        sessionManager.session?.authProvider == .pin
     }
 
     func toggleSelection(_ id: String) {
@@ -426,7 +449,7 @@ private extension LocationStationsView {
                 locationId: locationId
             )
             selectedStations.removeAll()
-            createdLineCheckId = response.id
+            createdLineCheck = response
 
         } catch {
             if shouldUseOfflineData(for: error),
@@ -445,7 +468,7 @@ private extension LocationStationsView {
                     stationIds: stationIds
                 )
                 selectedStations.removeAll()
-                createdLineCheckId = offlineLineCheck.id
+                createdLineCheck = offlineLineCheck
             } else if shouldUseOfflineData(for: error) {
                 errorMessage = "No saved template is available for the selected stations. Create this station set once while online, then it can be used offline."
             } else {
