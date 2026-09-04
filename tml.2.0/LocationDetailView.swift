@@ -46,7 +46,7 @@ struct LocationDetailView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    ProfileMenuView()
+                    ProfileMenuView(pinEnrollmentAccount: account)
                         .environmentObject(sessionManager)
                 }
             }
@@ -106,6 +106,7 @@ private extension LocationDetailView {
             }
             .buttonStyle(.plain)
 
+
             if pendingOfflineSyncCount > 0 {
                 Button {
                     Task {
@@ -160,6 +161,7 @@ private extension LocationDetailView {
         }
     }
 
+
     var pendingOfflineLineCheckCount: Int {
         offlineStore.pendingCount(for: locationId)
     }
@@ -197,6 +199,7 @@ private extension LocationDetailView {
         ?? "No offline work is waiting to sync."
         isShowingOfflineSyncMessage = true
     }
+
 
     func loadCorrectiveLineCheckCount() async {
         do {

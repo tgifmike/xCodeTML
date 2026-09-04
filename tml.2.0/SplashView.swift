@@ -1,150 +1,75 @@
-//
-//  SplashView.swift
-//  tml.2.0
-//
-//  Created by mike on 5/13/26.
-//
-
-
 import SwiftUI
 
 struct SplashView: View {
-
-    @State private var pulse = false
-    @State private var glow = false
+    @State private var logoScale = 0.94
+    @State private var logoOpacity = 0.0
+    @State private var progressOpacity = 0.0
 
     var body: some View {
-
         ZStack {
+            background
 
-            // MARK: Background
+            VStack(spacing: 28) {
+                Spacer(minLength: 40)
+
+                Image("new_tml_logo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxWidth: 420)
+                    .padding(.horizontal, 34)
+                    .scaleEffect(logoScale)
+                    .opacity(logoOpacity)
+                    .shadow(color: .black.opacity(0.16), radius: 18, x: 0, y: 10)
+
+                VStack(spacing: 10) {
+                    Text("Operations & Readiness")
+                        .font(.system(size: 24, weight: .semibold))
+                        .foregroundStyle(.primary)
+
+                    Text("Line Check")
+                        .font(.system(size: 17, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
+                .multilineTextAlignment(.center)
+                .opacity(progressOpacity)
+
+                ProgressView()
+                    .tint(.blue)
+                    .scaleEffect(1.05)
+                    .opacity(progressOpacity)
+                    .padding(.top, 4)
+
+                Spacer(minLength: 70)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .onAppear {
+            withAnimation(.spring(response: 0.7, dampingFraction: 0.86)) {
+                logoScale = 1
+                logoOpacity = 1
+            }
+
+            withAnimation(.easeIn(duration: 0.35).delay(0.25)) {
+                progressOpacity = 1
+            }
+        }
+    }
+
+    private var background: some View {
+        ZStack {
+            Color(.systemBackground)
 
             LinearGradient(
                 colors: [
-                    Color.black,
-                    Color(red: 0.07, green: 0.07, blue: 0.09)
+                    Color(.systemBackground),
+                    Color.blue.opacity(0.08),
+                    Color(.secondarySystemBackground)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
-            .ignoresSafeArea()
-
-            VStack(spacing: 30) {
-
-                // MARK: Logo + Pulse Animation
-
-                ZStack {
-
-                    // Outer Pulse Ring
-
-                    Circle()
-                        .stroke(
-                            Color.white.opacity(0.35),
-                            lineWidth: 3
-                        )
-                        .frame(width: 220, height: 220)
-                        .scaleEffect(pulse ? 1.35 : 0.75)
-                        .opacity(pulse ? 0 : 1)
-
-                    // Secondary Pulse Ring
-
-                    Circle()
-                        .stroke(
-                            Color.white.opacity(0.20),
-                            lineWidth: 2
-                        )
-                        .frame(width: 220, height: 220)
-                        .scaleEffect(pulse ? 1.15 : 0.9)
-                        .opacity(pulse ? 0 : 0.7)
-
-                    // Static Ring
-
-                    Circle()
-                        .stroke(
-                            Color.white.opacity(0.08),
-                            lineWidth: 1
-                        )
-                        .frame(width: 190, height: 190)
-
-                    // Glow Effect
-
-                    Circle()
-                        .fill(
-                            RadialGradient(
-                                colors: [
-                                    Color.white.opacity(glow ? 0.22 : 0.08),
-                                    Color.clear
-                                ],
-                                center: .center,
-                                startRadius: 20,
-                                endRadius: 120
-                            )
-                        )
-                        .frame(width: 220, height: 220)
-
-                    // Logo
-
-                    Image("checkmark")
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: 160, height: 160)
-                        .clipShape(Circle())
-                        .overlay(
-                            Circle()
-                                .stroke(
-                                    Color.white.opacity(0.15),
-                                    lineWidth: 1
-                                )
-                        )
-                        .shadow(
-                            color: .white.opacity(0.18),
-                            radius: 18
-                        )
-                }
-                .frame(height: 260)
-
-                // MARK: Title
-
-                VStack(spacing: 10) {
-
-                    Text("Loading Operations & Readiness Line Check. . .")
-                        .font(.system(size: 28, weight: .bold))
-                        .foregroundStyle(.white)
-
-//                    Text("Loading Operations & Readiness Line Check")
-//                        .font(.subheadline)
-//                        .foregroundStyle(.white.opacity(0.65))
-                }
-
-                // MARK: Loading Indicator
-
-                ProgressView()
-                    .tint(.white)
-                    .scaleEffect(1.05)
-                    .padding(.top, 8)
-            }
-            .padding(.bottom, 40)
         }
-        .onAppear {
-
-            // Pulse Animation
-
-            withAnimation(
-                .easeOut(duration: 2)
-                .repeatForever(autoreverses: false)
-            ) {
-                pulse = true
-            }
-
-            // Glow Animation
-
-            withAnimation(
-                .easeInOut(duration: 1.2)
-                .repeatForever(autoreverses: true)
-            ) {
-                glow.toggle()
-            }
-        }
+        .ignoresSafeArea()
     }
 }
 

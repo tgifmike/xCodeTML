@@ -260,14 +260,16 @@ final class LineCheckDetailVM: ObservableObject {
 
     // MARK: LOAD
 
-    func load(lineCheckId: String) async {
+    func load(lineCheckId: String, initialLineCheck: LineCheckDto? = nil) async {
         isLoading = true
         error = nil
 
         do {
             let response: LineCheckDto
 
-            if let draft = OfflineLineCheckStore.shared.draft(lineCheckId: lineCheckId) {
+            if let initialLineCheck {
+                response = initialLineCheck
+            } else if let draft = OfflineLineCheckStore.shared.draft(lineCheckId: lineCheckId) {
                 response = draft.lineCheck
             } else {
                 response = try await LineCheckApi.shared.getLineCheckById(lineCheckId: lineCheckId)
@@ -328,6 +330,19 @@ final class LineCheckDetailVM: ObservableObject {
 
         let payload = lineCheckPayload(from: current)
 
+        if shouldSaveLocally(payload) {
+            OfflineLineCheckStore.shared.enqueue(
+                lineCheck: payload,
+                locationId: locationId,
+                locationName: locationName,
+                accountName: accountName
+            )
+            saveSuccessMessage = "Line check saved offline. It will sync from the dashboard when manager access is available."
+            saveSuccess = true
+            isSaving = false
+            return
+        }
+
         do {
             _ = try await LineCheckApi.shared.saveLineCheck(payload)
             saveSuccess = true
@@ -347,6 +362,10 @@ final class LineCheckDetailVM: ObservableObject {
         }
 
         isSaving = false
+    }
+
+    private func shouldSaveLocally(_ lineCheck: LineCheckDto) -> Bool {
+        lineCheck.id.hasPrefix("offline-") || OfflineLineCheckStore.shared.draft(lineCheckId: lineCheck.id) != nil
     }
 
     private func lineCheckPayload(from current: LineCheckDto) -> LineCheckDto {

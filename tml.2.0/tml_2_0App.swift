@@ -7,6 +7,7 @@ struct tml_2_0App: App {
     @StateObject private var sessionManager = SessionManager()
     @StateObject private var appSettings = AppSettings()
     @StateObject private var offlineSyncCoordinator = OfflineSyncCoordinator.shared
+    @StateObject private var pinStore = OfflinePinDeviceStore.shared
     private let autoLogoutManager = AutoLogoutManager()
     @State private var showSplash = true
 
@@ -33,54 +34,49 @@ struct tml_2_0App: App {
 
                 } else {
 
-                    if sessionManager.session != nil {
+                    if let session = sessionManager.session {
 
-                        AccountPickerView()
+                        if let enrollment = pinStore.defaultEnrollment,
+                           let locationId = enrollment.locationId {
+
+                            EnrolledDeviceDashboardView(
+                                accountId: enrollment.accountId,
+                                locationId: locationId
+                            )
+
+                        } else if let accountId = session.accountId,
+                                  let locationId = session.locationId {
+
+                            EnrolledDeviceDashboardView(
+                                accountId: accountId,
+                                locationId: locationId
+                            )
+
+                        } else {
+
+                            AccountPickerView()
+                        }
+
+                    } else if sessionManager.savedSession != nil && pinStore.hasUsablePinLogin {
+
+                        OfflinePinLoginView(
+                            onLoginSuccess: handleLoginSuccess,
+                            showsCancelButton: false
+                        )
 
                     } else {
 
-                        LoginView(onLoginSuccess: { newSession in
-
-                            sessionManager.session = newSession
-
-                            Task {
-                                await offlineSyncCoordinator.syncNow()
-                            }
-
-                            autoLogoutManager.startTimer(
-                                interval: appSettings.autoLogoutInterval
-                            ) {
-                                sessionManager.logout(clearSavedSession: false)
-                            }
-                        })
+                        LoginView(onLoginSuccess: handleLoginSuccess)
                     }
                 }
             }
-
-            // MARK: User Activity Tracking
-
-//            .contentShape(Rectangle())
-
-//            .simultaneousGesture(
-//                TapGesture().onEnded {
-//
-//                    guard sessionManager.session != nil else {
-//                        return
-//                    }
-//
-//                    autoLogoutManager.resetTimer(
-//                        interval: appSettings.autoLogoutInterval
-//                    ) {
-//                        sessionManager.logout()
-//                    }
-//                }
-//            )
 
             // MARK: Splash
 
             .task {
 
                 offlineSyncCoordinator.startMonitoring()
+                offlineSyncCoordinator.setLineCheckSyncEnabled(isLineCheckSyncAllowed)
 
                 if sessionManager.session != nil {
                     await offlineSyncCoordinator.syncIfPossible(reason: "app-start")
@@ -101,6 +97,8 @@ struct tml_2_0App: App {
 
                 if loggedIn {
 
+                    offlineSyncCoordinator.setLineCheckSyncEnabled(isLineCheckSyncAllowed)
+
                     Task {
                         await offlineSyncCoordinator.syncNow()
                     }
@@ -113,6 +111,7 @@ struct tml_2_0App: App {
 
                 } else {
 
+                    offlineSyncCoordinator.setLineCheckSyncEnabled(false)
                     autoLogoutManager.stop()
                 }
             }
@@ -129,5 +128,24 @@ struct tml_2_0App: App {
         .environmentObject(sessionManager)
         .environmentObject(appSettings)
         .environmentObject(offlineSyncCoordinator)
+    }
+
+    private var isLineCheckSyncAllowed: Bool {
+        sessionManager.session != nil
+    }
+
+    private func handleLoginSuccess(_ newSession: UserSession) {
+        sessionManager.session = newSession
+        offlineSyncCoordinator.setLineCheckSyncEnabled(true)
+
+        Task {
+            await offlineSyncCoordinator.syncNow()
+        }
+
+        autoLogoutManager.startTimer(
+            interval: appSettings.autoLogoutInterval
+        ) {
+            sessionManager.logout(clearSavedSession: false)
+        }
     }
 }

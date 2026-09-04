@@ -3,7 +3,10 @@ import GoogleSignIn
 
 struct ProfileMenuView: View {
 
+    var pinEnrollmentAccount: Account? = nil
+
     @EnvironmentObject var sessionManager: SessionManager
+    @State private var showSignOutConfirmation = false
 
     var body: some View {
 
@@ -16,7 +19,13 @@ struct ProfileMenuView: View {
             }
 
             NavigationLink {
-                SettingsView()
+                OfflineSyncView()
+            } label: {
+                Label("Offline Sync", systemImage: "arrow.triangle.2.circlepath")
+            }
+
+            NavigationLink {
+                SettingsView(pinEnrollmentAccount: pinEnrollmentAccount)
                     .environmentObject(sessionManager)
             } label: {
                 Label("Settings", systemImage: "gearshape")
@@ -25,7 +34,7 @@ struct ProfileMenuView: View {
             Divider()
 
             Button(role: .destructive) {
-                signOut()
+                showSignOutConfirmation = true
             } label: {
                 Label(
                     "Sign Out",
@@ -38,6 +47,14 @@ struct ProfileMenuView: View {
             profileImage
                 .frame(width: 34, height: 34)
                 .clipShape(Circle())
+        }
+        .alert("Sign Out?", isPresented: $showSignOutConfirmation) {
+            Button("Cancel", role: .cancel) { }
+            Button("Sign Out", role: .destructive) {
+                signOut()
+            }
+        } message: {
+            Text("Do you really want to sign out?")
         }
     }
 

@@ -121,6 +121,10 @@ final class APIClient {
         case 403:
             throw APIError.forbidden(serverMessage(from: data))
 
+        case 423:
+            let lockout = lockoutDetails(from: data)
+            throw APIError.locked(lockout.message, lockout.lockedUntil, lockout.retryAfterSeconds)
+
         default:
             throw APIError.serverError(http.statusCode, serverMessage(from: data))
         }
@@ -153,6 +157,23 @@ final class APIClient {
         }
 
         return nil
+    }
+
+    private func lockoutDetails(from data: Data) -> (message: String?, lockedUntil: Date?, retryAfterSeconds: Int?) {
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return (serverMessage(from: data), nil, nil)
+        }
+
+        let message = serverMessage(from: data)
+        let lockedUntilValue = json["lockedUntil"] as? String
+            ?? json["lockoutUntil"] as? String
+            ?? json["pinLockedUntil"] as? String
+        let lockedUntil = lockedUntilValue.flatMap { ISO8601DateFormatter.withInternetDateTimeAndFractions.date(from: $0) }
+            ?? lockedUntilValue.flatMap { ISO8601DateFormatter.withInternetDateTime.date(from: $0) }
+        let retryAfterSeconds = json["retryAfterSeconds"] as? Int
+            ?? json["retryAfter"] as? Int
+
+        return (message, lockedUntil, retryAfterSeconds)
     }
 
     private func cleanedServerMessage(_ message: String) -> String {

@@ -10,6 +10,7 @@ enum AuthProvider: String, Codable {
     case google
     case apple
     case demo
+    case pin
 
     var displayName: String {
 
@@ -23,6 +24,9 @@ enum AuthProvider: String, Codable {
 
         case .demo:
             return "Demo Mode"
+
+        case .pin:
+            return "Employee PIN"
         }
     }
 }

@@ -13,8 +13,7 @@ struct LoginView: View {
     @State private var errorMessage: String?
     @State private var showErrorAlert = false
     @State private var attemptedEmail: String?
-    //    @State private var logoTapCount = 0
-    //    @State private var showDemoButton = false
+    @State private var showOfflinePinLogin = false
     
     var body: some View {
         
@@ -107,6 +106,25 @@ struct LoginView: View {
                         style: .continuous
                     )
                 )
+
+                Button {
+                    showOfflinePinLogin = true
+                } label: {
+                    Label("Use Employee PIN", systemImage: "key.fill")
+                        .font(.headline)
+                        .frame(height: 56)
+                        .frame(maxWidth: 260)
+                        .background(Color(.secondarySystemBackground))
+                        .foregroundStyle(.primary)
+                        .clipShape(
+                            RoundedRectangle(
+                                cornerRadius: 18,
+                                style: .continuous
+                            )
+                        )
+                }
+                .buttonStyle(.plain)
+                .disabled(isLoading)
             }
             .padding(.top, 28)
             
@@ -158,6 +176,11 @@ struct LoginView: View {
         } message: {
             
             Text(errorMessage ?? "Unknown error")
+        }
+        .sheet(isPresented: $showOfflinePinLogin) {
+            OfflinePinLoginView(onLoginSuccess: onLoginSuccess)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
         }
     }
 }
@@ -331,8 +354,6 @@ extension LoginView {
                 return
             }
 
-            print("Status:", httpResponse.statusCode)
-
             switch httpResponse.statusCode {
 
             case 200:
@@ -383,8 +404,6 @@ extension LoginView {
         data: Data,
         provider: String
     ) {
-
-        print("RAW LOGIN RESPONSE:", String(data: data, encoding: .utf8) ?? "nil")
 
         do {
 
@@ -505,7 +524,6 @@ extension LoginView {
             }
 
             DispatchQueue.main.async {
-                print("Preview login unavailable, using offline demo session:", error?.localizedDescription ?? "No response")
                 finishLoading()
                 useOfflineDemoSession()
             }

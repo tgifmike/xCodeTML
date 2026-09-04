@@ -11,6 +11,7 @@ import GoogleSignIn
 struct AccountPickerView: View {
 
     @EnvironmentObject var sessionManager: SessionManager
+    @EnvironmentObject var offlineSyncCoordinator: OfflineSyncCoordinator
 
     @StateObject private var offlineNavigationStore = OfflineAccountLocationStore.shared
     @State private var accounts: [Account] = []
@@ -47,7 +48,7 @@ private extension AccountPickerView {
 
             header
 
-            if isUsingOfflineAccounts {
+            if shouldShowOfflineAccountsBanner {
                 offlineAccountsBanner
             }
 
@@ -96,6 +97,10 @@ private extension AccountPickerView {
         }
     }
 
+    var shouldShowOfflineAccountsBanner: Bool {
+        isUsingOfflineAccounts && !offlineSyncCoordinator.isOnline
+    }
+
     var offlineAccountsBanner: some View {
         Label(
             offlineAccountsText,
@@ -112,10 +117,10 @@ private extension AccountPickerView {
     var offlineAccountsText: String {
         guard let userId = sessionManager.session?.userId,
               let cachedAt = offlineNavigationStore.cachedAccountsAt(for: userId) else {
-            return "Using saved accounts from this device"
+            return "Offline. Using saved accounts from this device"
         }
 
-        return "Using saved accounts from \(formattedCacheDate(cachedAt))"
+        return "Offline. Using saved accounts from \(formattedCacheDate(cachedAt))"
     }
 
     func formattedCacheDate(_ date: Date) -> String {
@@ -207,11 +212,8 @@ private extension AccountPickerView {
                 ForEach(accounts) { account in
 
                     NavigationLink {
-
-                        AccountDetailView(account: account)
-
+                        accountDestination(for: account)
                     } label: {
-
                         AccountCard(account: account)
                     }
                     .buttonStyle(.plain)
@@ -219,6 +221,10 @@ private extension AccountPickerView {
             }
             .padding(.top, 8)
         }
+    }
+
+    func accountDestination(for account: Account) -> some View {
+        AccountDetailView(account: account)
     }
 }
 
@@ -228,11 +234,13 @@ private extension AccountPickerView {
 
         
         
-        guard let userId = sessionManager.session?.userId else {
+        guard let session = sessionManager.session else {
             accounts = []
             hasLoaded = true
             return
         }
+
+        let userId = session.userId
 
     
         
@@ -245,22 +253,34 @@ private extension AccountPickerView {
             offlineNavigationStore.cacheAccounts(accounts, userId: userId)
             isUsingOfflineAccounts = false
         } catch {
-            print("❌ Accounts error:", error)
-
             let cachedAccounts = offlineNavigationStore.cachedAccounts(for: userId)
             if cachedAccounts.isEmpty {
                 accounts = []
-                errorMessage = error.localizedDescription
                 isUsingOfflineAccounts = false
+
+                if isUnauthorized(error) {
+                    sessionManager.logout(clearSavedSession: true)
+                    return
+                }
+
+                errorMessage = error.localizedDescription
             } else {
                 accounts = cachedAccounts
                 errorMessage = nil
-                isUsingOfflineAccounts = true
+                isUsingOfflineAccounts = !offlineSyncCoordinator.isOnline
             }
         }
 
         isLoading = false
         hasLoaded = true
+    }
+
+    func isUnauthorized(_ error: Error) -> Bool {
+        if case APIError.unauthorized = error {
+            return true
+        }
+
+        return false
     }
 }
 
