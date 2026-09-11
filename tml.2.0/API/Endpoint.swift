@@ -109,6 +109,22 @@ struct Endpoint {
             )
         }
 
+        static var getEULAAcceptanceStatus: Endpoint {
+            Endpoint(
+                path: "/users/me/eula-acceptance",
+                method: .GET,
+                body: nil
+            )
+        }
+
+        static func acceptEULA(version: Int) -> Endpoint {
+            Endpoint(
+                path: "/users/me/eula-acceptance",
+                method: .POST,
+                body: AcceptEULARequest(version: version)
+            )
+        }
+
         static func getLineCheckPhotos(lineCheckItemId: String) -> Endpoint {
             Endpoint(
                 path: "/api/line-check-items/\(lineCheckItemId.urlPathSegmentEncoded)/photos",

@@ -29,8 +29,7 @@ struct LineCheckDetailView: View {
     }
 
     @StateObject private var vm = LineCheckDetailVM()
-
-//    @State private var lineCheck: LineCheckDto?
+    @State private var printError: String?
 
     @EnvironmentObject var appSettings: AppSettings
     @Environment(\.dismiss) private var dismiss
@@ -44,13 +43,24 @@ struct LineCheckDetailView: View {
             content
                 .navigationTitle("Line Check")
                 .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    if isReadOnly, vm.lineCheck != nil {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button {
+                                printLineCheck()
+                            } label: {
+                                Label("Print", systemImage: "printer")
+                            }
+                        }
+                    }
+                }
         }
         .task {
             await vm.load(lineCheckId: lineCheckId, initialLineCheck: initialLineCheck)
         }
         .overlay {
 
-            if let error = vm.saveError ?? vm.error {
+            if let error = vm.saveError ?? vm.error ?? printError {
 
                 CustomAlertView(
                     title: "Error",
@@ -59,6 +69,7 @@ struct LineCheckDetailView: View {
                 ) {
                     vm.error = nil
                     vm.saveError = nil
+                    printError = nil
                 }
             }
         }
@@ -94,56 +105,6 @@ struct LineCheckDetailView: View {
 
     // MARK: MAIN VIEW
 
-//    private var mainView: some View {
-//
-//        let stationNames = Array(
-//            Set(vm.items.map(\.stationName))
-//        ).sorted()
-//
-//        return VStack(spacing: 0) {
-//
-//            // STICKY HEADER
-//            progressHeader
-//                .padding(.horizontal)
-//                .padding(.top, 4)
-//                .background(.ultraThinMaterial)
-//                .zIndex(1)
-//            
-//            ScrollView {
-//
-//                LazyVStack(spacing: 12) {
-//
-//                    headerSection
-//
-//                    ForEach(stationNames, id: \.self) { stationName in
-//
-//                        LineCheckStationSection(
-//                            stationName: stationName,
-//                            items: bindingForStation(stationName),
-//                            focusedField: $focusedField
-//                        )
-//                    }
-//
-//                    saveButton
-//                        .padding(.top, 8)
-//                }
-//                .padding()
-//                .padding(.top, 4)
-//            }
-//            .scrollDismissesKeyboard(.interactively)
-//        }
-//        .toolbar {
-//
-//            ToolbarItemGroup(placement: .keyboard) {
-//
-//                Spacer()
-//
-//                Button("Done") {
-//                    focusedField = nil
-//                }
-//            }
-//        }
-//    }
     
     @ViewBuilder
     private var mainView: some View {
@@ -378,6 +339,22 @@ struct LineCheckDetailView: View {
         formatter.timeStyle = .short
 
         return formatter.string(from: checkTime)
+    }
+
+    // MARK: PRINT
+
+    private func printLineCheck() {
+        guard let lineCheck = vm.lineCheck else { return }
+
+        do {
+            try LineCheckPrinter.print(
+                lineCheck: lineCheck,
+                accountName: accountName,
+                locationName: locationName
+            )
+        } catch {
+            printError = error.localizedDescription
+        }
     }
     
     // MARK: SAVE

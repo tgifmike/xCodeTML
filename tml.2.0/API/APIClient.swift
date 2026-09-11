@@ -10,6 +10,7 @@ import Foundation
 final class APIClient {
 
     static let shared = APIClient()
+    static let sessionExpiredNotification = Notification.Name("APIClientSessionExpired")
 
     private init() {}
 
@@ -116,6 +117,7 @@ final class APIClient {
 
             return try decoder.decode(T.self, from: data)
         case 401:
+            notifySessionExpired()
             throw APIError.unauthorized(serverMessage(from: data))
 
         case 403:
@@ -127,6 +129,15 @@ final class APIClient {
 
         default:
             throw APIError.serverError(http.statusCode, serverMessage(from: data))
+        }
+    }
+
+    private func notifySessionExpired() {
+        Task { @MainActor in
+            NotificationCenter.default.post(
+                name: APIClient.sessionExpiredNotification,
+                object: nil
+            )
         }
     }
 
