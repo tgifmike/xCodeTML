@@ -55,7 +55,8 @@ private extension LineCheckHistoryView {
                     locationId: locationId,
                     locationName: locationName,
                     accountName: accountName,
-                    isReadOnly: true
+                    isReadOnly: true,
+                    initialLineCheck: lineCheck
                 )
             } label: {
                 LineCheckHistoryRow(lineCheck: lineCheck)

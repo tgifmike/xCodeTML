@@ -23,6 +23,9 @@
 		3D2517DD3049D12200E22EA5 /* OfflineSyncView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2517DC3049D12200E22EA5 /* OfflineSyncView.swift */; };
 		3D2517DF304AFC9700E22EA5 /* EnrolledDeviceDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2517DE304AFC9700E22EA5 /* EnrolledDeviceDashboardView.swift */; };
 		3D2517E4304B00C000E22EA5 /* Argon2Swift in Frameworks */ = {isa = PBXBuildFile; productRef = 3D2517E3304B00C000E22EA5 /* Argon2Swift */; };
+		3D2517E63051803D00E22EA5 /* LineCheckPDFRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2517E53051803D00E22EA5 /* LineCheckPDFRenderer.swift */; };
+		3D2517E830548BCA00E22EA5 /* EULAAgreementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2517E730548BCA00E22EA5 /* EULAAgreementView.swift */; };
+		3D2517EA30548E1D00E22EA5 /* EULAApi.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2517E930548E1D00E22EA5 /* EULAApi.swift */; };
 		3D3AD24B2F4E2CE2005F14E5 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 3D3AD24A2F4E2CE2005F14E5 /* GoogleSignIn */; };
 		3D3AD24D2F4E2CE2005F14E5 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 3D3AD24C2F4E2CE2005F14E5 /* GoogleSignInSwift */; };
 		3D3F7B5E303E5D2C008D9EEF /* LineCheckCriterionResponseDto.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D3F7B5D303E5D2C008D9EEF /* LineCheckCriterionResponseDto.swift */; };
@@ -103,6 +106,9 @@
 		3D2517D83048508C00E22EA5 /* OfflinePinLoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflinePinLoginView.swift; sourceTree = "<group>"; };
 		3D2517DC3049D12200E22EA5 /* OfflineSyncView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineSyncView.swift; sourceTree = "<group>"; };
 		3D2517DE304AFC9700E22EA5 /* EnrolledDeviceDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnrolledDeviceDashboardView.swift; sourceTree = "<group>"; };
+		3D2517E53051803D00E22EA5 /* LineCheckPDFRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineCheckPDFRenderer.swift; sourceTree = "<group>"; };
+		3D2517E730548BCA00E22EA5 /* EULAAgreementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EULAAgreementView.swift; sourceTree = "<group>"; };
+		3D2517E930548E1D00E22EA5 /* EULAApi.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EULAApi.swift; sourceTree = "<group>"; };
 		3D3AD2372F4E2B9C005F14E5 /* tml.2.0.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = tml.2.0.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3D3F7B5D303E5D2C008D9EEF /* LineCheckCriterionResponseDto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineCheckCriterionResponseDto.swift; sourceTree = "<group>"; };
 		3D3F7B5F303F1072008D9EEF /* LineCheckItemState+Completion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "LineCheckItemState+Completion.swift"; sourceTree = "<group>"; };
@@ -229,6 +235,7 @@
 				3D15087D30361EF30021DBF2 /* String+URLPathSegment.swift */,
 				3D3F7B633044CA36008D9EEF /* LineCheckItemApi.swift */,
 				3D2517D23048501600E22EA5 /* IpadDeviceApi.swift */,
+				3D2517E930548E1D00E22EA5 /* EULAApi.swift */,
 			);
 			path = API;
 			sourceTree = "<group>";
@@ -341,6 +348,8 @@
 				3D2517D83048508C00E22EA5 /* OfflinePinLoginView.swift */,
 				3D2517DC3049D12200E22EA5 /* OfflineSyncView.swift */,
 				3D2517DE304AFC9700E22EA5 /* EnrolledDeviceDashboardView.swift */,
+				3D2517E53051803D00E22EA5 /* LineCheckPDFRenderer.swift */,
+				3D2517E730548BCA00E22EA5 /* EULAAgreementView.swift */,
 			);
 			path = tml.2.0;
 			sourceTree = "<group>";
@@ -447,6 +456,7 @@
 				3D934E312FABB07100DC81AA /* LineCheckItemRowVM.swift in Sources */,
 				3D934E3C2FABD43200DC81AA /* LineCheckDetailVM.swift in Sources */,
 				3D54418A2FAB46AD00DC73D9 /* LineCheckStationDto.swift in Sources */,
+				3D2517EA30548E1D00E22EA5 /* EULAApi.swift in Sources */,
 				3D54418B2FAB46AD00DC73D9 /* Endpoint.swift in Sources */,
 				3D2517CC3045DB4800E22EA5 /* OfflineLineCheckPhotoStore.swift in Sources */,
 				3D2517CA3045DB2100E22EA5 /* PendingLineCheckPhoto.swift in Sources */,
@@ -479,6 +489,7 @@
 				3D934E402FB4ACD500DC81AA /* AutoLogoutInterval.swift in Sources */,
 				3D5441992FAB46AD00DC73D9 /* LocationStationsView.swift in Sources */,
 				3D54419A2FAB46AD00DC73D9 /* CustomAlertView.swift in Sources */,
+				3D2517E63051803D00E22EA5 /* LineCheckPDFRenderer.swift in Sources */,
 				3D934E4C2FB4D25A00DC81AA /* UserProfileViewModel.swift in Sources */,
 				3D54419B2FAB46AD00DC73D9 /* LineCheckDto.swift in Sources */,
 				3D54419C2FAB46AD00DC73D9 /* LineCheckStationSection.swift in Sources */,
@@ -498,6 +509,7 @@
 				3D934E362FABB19500DC81AA /* LineCheckStationVM.swift in Sources */,
 				3D5441A52FAB46AD00DC73D9 /* ProfileMenuView.swift in Sources */,
 				3D5441A62FAB46AD00DC73D9 /* ItemInput.swift in Sources */,
+				3D2517E830548BCA00E22EA5 /* EULAAgreementView.swift in Sources */,
 				3D5441A72FAB46AD00DC73D9 /* LocationApi.swift in Sources */,
 				3D5441A82FAB46AD00DC73D9 /* LoginView.swift in Sources */,
 				3D5441A92FAB46AD00DC73D9 /* AccountPickerView.swift in Sources */,
